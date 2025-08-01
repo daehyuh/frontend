@@ -31,10 +31,41 @@ interface ImageUploadResponse {
 }
 
 interface ValidateResponse {
+  validation_id: string;
   message: string;
   input_data: string;
   '64bit': number;
   output_sr_h_data: string;
+  s3_path: string;
+  modification_rate: number;
+}
+
+interface ValidationRecordDetail {
+  validation_id: string;
+  record_id: number;
+  user_id: number;
+  input_filename: string;
+  has_watermark: boolean;
+  detected_watermark_image_id: number | null;
+  modification_rate: number | null;
+  validation_time: string;
+  s3_path: string;
+  detected_watermark_info?: {
+    image_id: number;
+    filename: string;
+    copyright: string;
+    upload_time: string;
+  };
+}
+
+interface ImageDetailResponse {
+  id: number;
+  user_id: number;
+  copyright: string;
+  time_created: string;
+  original_url?: string;
+  watermarked_url?: string;
+  filename?: string;
 }
 
 class ApiClient {
@@ -139,7 +170,51 @@ class ApiClient {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('API Error:', errorData);
-      throw new Error(errorData.detail || errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+      
+      // 백엔드 응답에서 구체적인 에러 메시지 추출
+      let errorMessage = '알 수 없는 오류가 발생했습니다.';
+      
+      if (errorData.detail) {
+        errorMessage = errorData.detail;
+      } else if (errorData.message) {
+        errorMessage = errorData.message;
+      } else if (errorData.error) {
+        errorMessage = errorData.error;
+      } else {
+        // HTTP 상태 코드별 기본 메시지
+        switch (response.status) {
+          case 400:
+            errorMessage = '잘못된 요청입니다. 입력 정보를 확인해주세요.';
+            break;
+          case 401:
+            errorMessage = '인증에 실패했습니다. 다시 로그인해주세요.';
+            break;
+          case 403:
+            errorMessage = '접근 권한이 없습니다.';
+            break;
+          case 404:
+            errorMessage = '요청한 리소스를 찾을 수 없습니다.';
+            break;
+          case 409:
+            errorMessage = '이미 존재하는 데이터입니다.';
+            break;
+          case 422:
+            errorMessage = '입력 데이터가 올바르지 않습니다.';
+            break;
+          case 500:
+            errorMessage = '서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+            break;
+          case 502:
+          case 503:
+          case 504:
+            errorMessage = '서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+            break;
+          default:
+            errorMessage = `서버 오류 (${response.status}): ${response.statusText}`;
+        }
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
@@ -181,18 +256,25 @@ class ApiClient {
 
   // 내 정보 조회
   async getMe(): Promise<UserResponse> {
-    return this.request<UserResponse>('/users/me', {
+    const response = await this.request<ApiResponse<UserResponse[]>>('/users/me', {
       method: 'GET',
     });
+
+    // 배열 형태로 응답이 오는 경우 첫 번째 요소 반환
+    if (response.data && response.data.length > 0) {
+      return response.data[0];
+    }
+
+    throw new Error('사용자 정보를 찾을 수 없습니다.');
   }
 
   // 이미지 업로드
   async uploadImage(copyright: string, file: File): Promise<ImageUploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
-    // 쿼리 파라미터로 전달
-    const query = copyright ? `?copyright=${encodeURIComponent(copyright)}` : '';
-    return this.request<ImageUploadResponse>(`/upload${query}`, {
+    formData.append('copyright', copyright);
+    
+    return this.request<ImageUploadResponse>('/upload', {
       method: 'POST',
       body: formData,
     });
@@ -203,15 +285,29 @@ class ApiClient {
     const formData = new FormData();
     formData.append('file', file);
 
-    return this.request<ValidateResponse>('/validate', {
+    const response = await this.request<ApiResponse<ValidateResponse[]>>('/validate', {
       method: 'POST',
       body: formData,
     });
+
+    // 배열 형태로 응답이 오는 경우 첫 번째 요소 반환
+    if (response.data && response.data.length > 0) {
+      return response.data[0];
+    }
+
+    throw new Error('검증 응답을 받지 못했습니다.');
   }
 
-  // 사용자 이미지 목록 조회
-  async getUserImages(): Promise<ImageUploadResponse[]> {
-    return this.request<ImageUploadResponse[]>('/images', {
+  // 사용자 이미지 목록 조회 (API 명세서의 /images 엔드포인트 사용)
+  async getUserImages(limit: number = 20, offset: number = 0): Promise<ApiResponse<any[]>> {
+    return this.request<ApiResponse<any[]>>(`/images?limit=${limit}&offset=${offset}`, {
+      method: 'GET',
+    });
+  }
+
+  // 이미지 상세 정보 조회
+  async getImageDetail(imageId: number): Promise<ImageDetailResponse> {
+    return this.request<ImageDetailResponse>(`/images/${imageId}`, {
       method: 'GET',
     });
   }
@@ -221,7 +317,7 @@ class ApiClient {
     this.clearTokens();
   }
 
-  // 토큰 확인
+  // 토큰 확인 (로컬 체크)
   isAuthenticated(): boolean {
     // 쿠키에서 토큰을 다시 읽어와서 확인
     const cookieToken = this.getCookie('access_token');
@@ -238,6 +334,64 @@ class ApiClient {
       hasToken 
     });
     return hasToken;
+  }
+
+  // 서버에서 토큰 검증 (보안 강화)
+  async verifyToken(): Promise<boolean> {
+    try {
+      if (!this.isAuthenticated()) {
+        return false;
+      }
+
+      const response = await fetch(`${this.baseURL}/verify-token`, {
+        method: 'GET',
+        headers: {
+          'access-token': this.accessToken || '',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.success && data.data?.[0]?.valid === true;
+      } else if (response.status === 401) {
+        // 토큰이 만료되었거나 유효하지 않음
+        this.logout();
+        return false;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('토큰 검증 실패:', error);
+      return false;
+    }
+  }
+
+  // 검증 기록 조회
+  async getValidationHistory(limit: number = 10, offset: number = 0): Promise<ApiResponse<any[]>> {
+    return this.request<ApiResponse<any[]>>(`/validation-history?limit=${limit}&offset=${offset}`, {
+      method: 'GET',
+    });
+  }
+
+  // 내 검증 요약 정보 조회
+  async getMyValidationSummary(limit: number = 10, offset: number = 0): Promise<ApiResponse<any[]>> {
+    return this.request<ApiResponse<any[]>>(`/my-validation-summary?limit=${limit}&offset=${offset}`, {
+      method: 'GET',
+    });
+  }
+
+  // UUID로 검증 레코드 상세 조회
+  async getValidationRecordByUuid(validationUuid: string): Promise<ValidationRecordDetail> {
+    const response = await this.request<ApiResponse<ValidationRecordDetail[]>>(`/validation-record/uuid/${validationUuid}`, {
+      method: 'GET',
+    });
+    
+    // 배열 형태로 응답이 오는 경우 첫 번째 요소 반환
+    if (response.data && response.data.length > 0) {
+      return response.data[0];
+    }
+    
+    throw new Error('검증 레코드를 찾을 수 없습니다.');
   }
 
   // 토큰 갱신
@@ -272,4 +426,4 @@ class ApiClient {
 }
 
 export const apiClient = ApiClient.getInstance();
-export type { LoginResponse, UserResponse, ImageUploadResponse, ValidateResponse };
+export type { LoginResponse, UserResponse, ImageUploadResponse, ValidateResponse, ImageDetailResponse, ValidationRecordDetail };

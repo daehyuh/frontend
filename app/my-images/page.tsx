@@ -7,36 +7,37 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Download, Search, Eye, Shield, AlertTriangle, CheckCircle } from "lucide-react"
+import { Download, Search, Shield } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import { apiClient } from "@/lib/api"
+import { getImageUrl, downloadImage } from "@/lib/image-utils"
 
 interface ImageRecord {
-  id: string
+  image_id: number
   filename: string
-  uploadDate: string
-  type: "protect" | "verify"
-  status: "safe" | "manipulated" | "protected"
-  confidence?: number
-  thumbnail: string
-  size: string
-  tamperRate?: number // Added for mock data
+  copyright: string
+  upload_time: string
+  s3_paths: {
+    gt: string
+    lr: string
+    sr: string
+    sr_h: string
+  }
 }
 
 export default function MyImagesPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [filterType, setFilterType] = useState("all")
-  const [filterStatus, setFilterStatus] = useState("all")
+  const [images, setImages] = useState<ImageRecord[]>([])
+  const [loading, setLoading] = useState(true)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const router = useRouter()
   const { toast } = useToast()
 
-  // 인증 상태 확인
+  // 인증 상태 확인 및 이미지 로드
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuthAndLoadImages = async () => {
       try {
         // 약간의 지연을 두어 쿠키가 완전히 로드되도록 함
         await new Promise(resolve => setTimeout(resolve, 100))
@@ -50,6 +51,9 @@ export default function MyImagesPage() {
           router.push("/login")
           return
         }
+
+        // 이미지 목록 로드
+        await loadImages()
       } catch (error) {
         console.error('Auth check error:', error)
       } finally {
@@ -57,100 +61,86 @@ export default function MyImagesPage() {
       }
     }
 
-    checkAuth()
+    checkAuthAndLoadImages()
   }, [router, toast])
+
+  const loadImages = async () => {
+    try {
+      setLoading(true)
+      const response = await apiClient.getUserImages()
+      if (response.success && response.data) {
+        setImages(response.data)
+      }
+    } catch (error: any) {
+      console.error('이미지 로드 실패:', error)
+      toast({
+        title: "로드 실패",
+        description: "이미지 목록을 불러올 수 없습니다.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   if (isCheckingAuth) return null;
 
-  // Mock data
-  const mockImages: ImageRecord[] = [
-    {
-      id: "img001",
-      filename: "portrait_photo.jpg",
-      uploadDate: "2025-01-15",
-      type: "protect",
-      status: "protected",
-      thumbnail: "/placeholder.png?height=150&width=150",
-      size: "2.4 MB",
-    },
-    {
-      id: "img002",
-      filename: "suspicious_image.png",
-      uploadDate: "2025-01-14",
-      type: "verify",
-      status: "manipulated",
-      tamperRate: 5.3,
-      thumbnail: "/placeholder.png?height=150&width=150",
-      size: "1.8 MB",
-    },
-    {
-      id: "img003",
-      filename: "document_scan.jpg",
-      uploadDate: "2025-01-13",
-      type: "verify",
-      status: "safe",
-      tamperRate: 1.2,
-      thumbnail: "/placeholder.png?height=150&width=150",
-      size: "3.1 MB",
-    },
-    {
-      id: "img004",
-      filename: "family_photo.jpg",
-      uploadDate: "2025-01-12",
-      type: "protect",
-      status: "protected",
-      thumbnail: "/placeholder.png?height=150&width=150",
-      size: "4.2 MB",
-    },
-    {
-      id: "img005",
-      filename: "news_image.png",
-      uploadDate: "2025-01-11",
-      type: "verify",
-      status: "manipulated",
-      tamperRate: 8.7,
-      thumbnail: "/placeholder.png?height=150&width=150",
-      size: "2.7 MB",
-    },
-  ]
-
-  const filteredImages = mockImages.filter((image) => {
-    const matchesSearch = image.filename.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesType = filterType === "all" || image.type === filterType
-    const matchesStatus = filterStatus === "all" || image.status === filterStatus
-    return matchesSearch && matchesType && matchesStatus
+  const filteredImages = images.filter((image) => {
+    if (!searchTerm.trim()) return true;
+    
+    const searchTerm_normalized = searchTerm.trim();
+    const filename = image.filename || '';
+    const copyright = image.copyright || '';
+    
+    // 여러 방법으로 검색 시도
+    const searchPatterns = [
+      searchTerm_normalized.toLowerCase(),
+      searchTerm_normalized.toUpperCase(),
+      searchTerm_normalized,
+    ];
+    
+    const targetTexts = [
+      filename.toLowerCase(),
+      filename.toUpperCase(), 
+      filename,
+      copyright.toLowerCase(),
+      copyright.toUpperCase(),
+      copyright,
+    ];
+    
+    // 패턴 중 하나라도 매칭되면 true
+    const isMatch = searchPatterns.some(pattern => 
+      targetTexts.some(text => text.includes(pattern))
+    );
+    
+    // 디버깅용 로그 (한글 검색 테스트용)
+    if (searchTerm_normalized.length > 0) {
+      console.log('검색어:', searchTerm_normalized);
+      console.log('파일명:', filename);
+      console.log('저작권:', copyright);
+      console.log('매칭 결과:', isMatch);
+    }
+    
+    return isMatch;
   })
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "protected":
-        return <Shield className="h-4 w-4 text-green-600" />
-      case "safe":
-        return <CheckCircle className="h-4 w-4 text-green-600" />
-      case "manipulated":
-        return <AlertTriangle className="h-4 w-4 text-red-600" />
-      default:
-        return null
-    }
-  }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "protected":
-        return <Badge className="bg-green-100 text-green-800">보호됨</Badge>
-      case "safe":
-        return <Badge className="bg-green-100 text-green-800">안전</Badge>
-      case "manipulated":
-        return <Badge variant="destructive">위변조 탐지</Badge>
-      default:
-        return null
+  const handleDownloadDirect = async (url: string, filename: string) => {
+    try {
+      await downloadImage(url, filename);
+      toast({
+        title: "성공",
+        description: "이미지가 다운로드되었습니다.",
+      });
+    } catch (error) {
+      console.error('다운로드 실패:', error);
+      toast({
+        title: "오류",
+        description: "이미지 다운로드에 실패했습니다.",
+        variant: "destructive",
+      });
     }
-  }
-
-  const handleDownload = (imageId: string) => {
-    // Mock download functionality
-    console.log(`Downloading image: ${imageId}`)
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -160,112 +150,141 @@ export default function MyImagesPage() {
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">내 이미지</h1>
-            <p className="text-xl text-gray-600">업로드한 이미지와 분석 결과를 관리하세요</p>
+            <p className="text-xl text-gray-600">업로드한 워터마크 이미지를 관리하세요</p>
           </div>
 
-          {/* Filters */}
+          {/* Search */}
           <Card className="mb-8">
             <CardContent className="pt-6">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      placeholder="파일명으로 검색..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                <Select value={filterType} onValueChange={setFilterType}>
-                  <SelectTrigger className="w-full md:w-48">
-                    <SelectValue placeholder="유형 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">모든 유형</SelectItem>
-                    <SelectItem value="protect">원본 보호</SelectItem>
-                    <SelectItem value="verify">위변조 검증</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-full md:w-48">
-                    <SelectValue placeholder="상태 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">모든 상태</SelectItem>
-                    <SelectItem value="protected">보호됨</SelectItem>
-                    <SelectItem value="safe">안전</SelectItem>
-                    <SelectItem value="manipulated">위변조 탐지</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="파일명 또는 저작권 정보로 검색..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
             </CardContent>
           </Card>
 
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">이미지를 불러오는 중...</p>
+            </div>
+          )}
+
+          {/* Search Results Summary */}
+          {!loading && images.length > 0 && (
+            <div className="flex items-center justify-between mb-6">
+              <p className="text-sm text-gray-600">
+                {searchTerm.trim() ? (
+                  <>검색 결과: <span className="font-semibold">{filteredImages.length}</span>개 (전체 {images.length}개 중)</>
+                ) : (
+                  <>전체 <span className="font-semibold">{images.length}</span>개의 이미지</>
+                )}
+              </p>
+              {searchTerm.trim() && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="text-sm text-blue-600 hover:text-blue-700 underline"
+                >
+                  검색 초기화
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Images Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredImages.map((image) => (
-              <Card key={image.id} className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-4">
-                  <div className="aspect-square mb-4 overflow-hidden rounded-lg bg-gray-100">
-                    <img
-                      src={image.thumbnail || "/placeholder.png"}
-                      alt={image.filename}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <div>
-                      <h3 className="font-medium text-gray-900 truncate">{image.filename}</h3>
-                      <p className="text-sm text-gray-500">
-                        {image.size} • {image.uploadDate}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        {/* 보호된 이미지는 보호됨만, 검증 이미지는 변조률/탐지 뱃지 */}
-                        {image.type === "protect" ? (
-                          <Badge className="bg-green-100 text-green-800">보호됨</Badge>
-                        ) : (
-                          <>
-                            {image.status === "manipulated" && <Badge variant="destructive">위변조 탐지</Badge>}
-                            {image.status === "safe" && <Badge className="bg-green-100 text-green-800">안전</Badge>}
-                          </>
-                        )}
+          {!loading && filteredImages.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredImages.map((image) => {
+                const uploadDate = new Date(image.upload_time).toLocaleDateString('ko-KR')
+                
+                return (
+                  <Card key={image.image_id} className="hover:shadow-lg transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="aspect-square mb-4 overflow-hidden rounded-lg bg-gray-100">
+                        <img
+                          src={getImageUrl(image.s3_paths.gt)}
+                          alt={image.filename}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
-                      <Badge variant="outline">{image.type === "protect" ? "보호" : "검증"}</Badge>
-                    </div>
 
-                    {/* 변조 이미지만 변조률 표시 */}
-                    {image.type === "verify" && typeof image.tamperRate === "number" && (
-                      <div className="text-sm text-gray-600">변조률: {image.tamperRate}%</div>
-                    )}
+                      <div className="space-y-3">
+                        <div>
+                          <h3 className="font-medium text-gray-900 truncate">{image.filename || '파일명 없음'}</h3>
+                          <p className="text-sm text-gray-500">
+                            {uploadDate}
+                          </p>
+                        </div>
+                        
+                        {/* 카피라이트 정보 강조 표시 */}
+                        {image.copyright && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <div className="flex items-start space-x-2">
+                              <Shield className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-medium text-blue-800 mb-1">저작권 정보</p>
+                                <p className="text-sm text-blue-700 break-words">{image.copyright}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" className="flex-1 bg-transparent">
-                        <Eye className="h-4 w-4 mr-1" />
-                        <Link href={`/result/${image.id}`}>결과 보기</Link>
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDownload(image.id)}>
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                        <div className="flex items-center justify-between">
+                          <Badge className="bg-green-100 text-green-800">보호됨</Badge>
+                          <Badge variant="outline">원본 보호</Badge>
+                        </div>
 
-          {filteredImages.length === 0 && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="bg-transparent"
+                            onClick={() => handleDownloadDirect(image.s3_paths.gt, `gt_${image.filename}`)}
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            원본
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="bg-transparent"
+                            onClick={() => handleDownloadDirect(image.s3_paths.sr, `sr_${image.filename}`)}
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            워터마크
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+
+          {!loading && filteredImages.length === 0 && (
             <Card className="text-center py-12">
               <CardContent>
                 <div className="text-gray-500 mb-4">
-                  <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg">검색 결과가 없습니다</p>
-                  <p className="text-sm">다른 검색어나 필터를 시도해보세요</p>
+                  {searchTerm.trim() ? (
+                    <>
+                      <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-lg">"{searchTerm}"에 대한 검색 결과가 없습니다</p>
+                      <p className="text-sm">다른 키워드로 검색해보세요</p>
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-lg">아직 업로드한 이미지가 없습니다</p>
+                      <p className="text-sm">첫 번째 이미지를 업로드해보세요</p>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>

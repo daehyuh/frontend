@@ -74,9 +74,41 @@ export default function LoginPage() {
       }, 1000)
     } catch (error) {
       console.error('Login error:', error);
+      
+      let errorTitle = "로그인 실패";
+      let errorDescription = "로그인 중 오류가 발생했습니다.";
+      
+      if (error instanceof Error) {
+        const message = error.message.toLowerCase();
+        
+        // 백엔드에서 오는 구체적인 에러 메시지 처리
+        if (message.includes('email') && message.includes('not found')) {
+          errorTitle = "계정을 찾을 수 없음";
+          errorDescription = "입력하신 이메일 주소로 등록된 계정이 없습니다.";
+        } else if (message.includes('password') && message.includes('incorrect')) {
+          errorTitle = "비밀번호 오류";
+          errorDescription = "비밀번호가 올바르지 않습니다.";
+        } else if (message.includes('invalid credentials') || message.includes('unauthorized')) {
+          errorTitle = "인증 실패";
+          errorDescription = "이메일 또는 비밀번호가 올바르지 않습니다.";
+        } else if (message.includes('email format') || message.includes('invalid email')) {
+          errorTitle = "이메일 형식 오류";
+          errorDescription = "올바른 이메일 형식으로 입력해주세요.";
+        } else if (message.includes('server') || message.includes('internal')) {
+          errorTitle = "서버 오류";
+          errorDescription = "서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.";
+        } else if (message.includes('network') || message.includes('fetch')) {
+          errorTitle = "네트워크 오류";
+          errorDescription = "인터넷 연결을 확인하고 다시 시도해주세요.";
+        } else {
+          // 백엔드에서 온 원본 메시지 사용
+          errorDescription = error.message;
+        }
+      }
+      
       toast({
-        title: "로그인 실패",
-        description: error instanceof Error ? error.message : "이메일 또는 비밀번호가 올바르지 않습니다.",
+        title: errorTitle,
+        description: errorDescription,
         variant: "destructive",
       })
     } finally {

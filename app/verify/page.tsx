@@ -59,19 +59,68 @@ export default function VerifyPage() {
       // 이미지 검증
       const validateResponse = await apiClient.validateImage(selectedFile)
       
+      console.log('Validation response:', validateResponse)
+      
       toast({
         title: "검증 완료",
         description: "이미지 분석이 완료되었습니다.",
       })
 
-      // 결과 페이지로 이동
-      // 실제로는 백엔드에서 받은 분석 ID를 사용해야 함
-      const resultId = Math.random().toString(36).substr(2, 9)
-      router.push(`/result/${resultId}`)
+      // 백엔드에서 받은 validation_id로 결과 페이지 이동
+      if (validateResponse && validateResponse.validation_id) {
+        router.push(`/result/${validateResponse.validation_id}`)
+      } else {
+        console.error('No validation_id in response:', validateResponse)
+        toast({
+          title: "검증 완료",
+          description: "검증은 완료되었지만 결과 페이지로 이동할 수 없습니다.",
+          variant: "destructive",
+        })
+      }
+      setIsProcessing(false)
     } catch (error) {
+      console.error('Validation error:', error);
+      
+      let errorTitle = "검증 실패";
+      let errorDescription = "이미지 검증 중 오류가 발생했습니다.";
+      
+      if (error instanceof Error) {
+        const message = error.message.toLowerCase();
+        
+        // 백엔드에서 오는 구체적인 에러 메시지 처리
+        if (message.includes('file size') || message.includes('too large') || message.includes('크기')) {
+          errorTitle = "파일 크기 초과";
+          errorDescription = "이미지 파일 크기가 10MB를 초과합니다. 더 작은 파일을 업로드해주세요.";
+        } else if (message.includes('file format') || message.includes('invalid format') || message.includes('png')) {
+          errorTitle = "파일 형식 오류";
+          errorDescription = "PNG 형식의 이미지만 검증 가능합니다.";
+        } else if (message.includes('corrupted') || message.includes('damaged') || message.includes('손상')) {
+          errorTitle = "파일 손상";
+          errorDescription = "이미지 파일이 손상되었습니다. 다른 파일을 선택해주세요.";
+        } else if (message.includes('unauthorized') || message.includes('token')) {
+          errorTitle = "인증 오류";
+          errorDescription = "로그인이 만료되었습니다. 다시 로그인해주세요.";
+        } else if (message.includes('analysis failed') || message.includes('분석 실패')) {
+          errorTitle = "분석 불가능";
+          errorDescription = "이미지 분석에 실패했습니다. 다른 이미지를 시도해보세요.";
+        } else if (message.includes('quota') || message.includes('limit')) {
+          errorTitle = "검증 한도 초과";
+          errorDescription = "일일 검증 한도를 초과했습니다. 내일 다시 시도해주세요.";
+        } else if (message.includes('server') || message.includes('internal') || message.includes('500')) {
+          errorTitle = "서버 오류";
+          errorDescription = "서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.";
+        } else if (message.includes('network') || message.includes('fetch')) {
+          errorTitle = "네트워크 오류";
+          errorDescription = "인터넷 연결을 확인하고 다시 시도해주세요.";
+        } else {
+          // 백엔드에서 온 원본 메시지 사용
+          errorDescription = error.message;
+        }
+      }
+      
       toast({
-        title: "검증 실패",
-        description: error instanceof Error ? error.message : "이미지 검증 중 오류가 발생했습니다.",
+        title: errorTitle,
+        description: errorDescription,
         variant: "destructive",
       })
       setIsProcessing(false)

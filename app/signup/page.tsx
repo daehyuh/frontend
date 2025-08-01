@@ -95,9 +95,45 @@ export default function SignupPage() {
       // 로그인 페이지로 이동
       router.push("/login")
     } catch (error) {
+      console.error('Signup error:', error);
+      
+      let errorTitle = "회원가입 실패";
+      let errorDescription = "회원가입 중 오류가 발생했습니다.";
+      
+      if (error instanceof Error) {
+        const message = error.message.toLowerCase();
+        
+        // 백엔드에서 오는 구체적인 에러 메시지 처리
+        if (message.includes('email') && (message.includes('already exists') || message.includes('duplicate') || message.includes('이미 존재'))) {
+          errorTitle = "이메일 중복";
+          errorDescription = "이미 사용 중인 이메일입니다. 다른 이메일을 사용해주세요.";
+        } else if (message.includes('email format') || message.includes('invalid email') || message.includes('이메일 형식')) {
+          errorTitle = "이메일 형식 오류";
+          errorDescription = "올바른 이메일 형식으로 입력해주세요. (예: user@example.com)";
+        } else if (message.includes('password') && (message.includes('too short') || message.includes('weak') || message.includes('짧습니다'))) {
+          errorTitle = "비밀번호 형식 오류";
+          errorDescription = "비밀번호는 8자 이상이며 영문, 숫자, 특수문자를 포함해야 합니다.";
+        } else if (message.includes('name') && (message.includes('required') || message.includes('필수'))) {
+          errorTitle = "이름 입력 필요";
+          errorDescription = "이름을 입력해주세요.";
+        } else if (message.includes('validation') || message.includes('422')) {
+          errorTitle = "입력 정보 오류";
+          errorDescription = "입력하신 정보를 다시 확인해주세요.";
+        } else if (message.includes('server') || message.includes('internal') || message.includes('500')) {
+          errorTitle = "서버 오류";
+          errorDescription = "서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.";
+        } else if (message.includes('network') || message.includes('fetch')) {
+          errorTitle = "네트워크 오류";
+          errorDescription = "인터넷 연결을 확인하고 다시 시도해주세요.";
+        } else {
+          // 백엔드에서 온 원본 메시지 사용
+          errorDescription = error.message;
+        }
+      }
+      
       toast({
-        title: "회원가입 실패",
-        description: error instanceof Error ? error.message : "회원가입 중 오류가 발생했습니다.",
+        title: errorTitle,
+        description: errorDescription,
         variant: "destructive",
       })
     } finally {

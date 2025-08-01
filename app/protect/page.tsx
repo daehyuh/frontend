@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Download, CheckCircle, Shield, Search } from "lucide-react"
+import { Loader2, Shield, Search } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
@@ -18,8 +18,6 @@ export default function ProtectPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [copyrightInfo, setCopyrightInfo] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
-  const [isComplete, setIsComplete] = useState(false)
-  const [protectedImageUrl, setProtectedImageUrl] = useState<string | null>(null)
   const router = useRouter()
   const { toast } = useToast()
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
@@ -53,8 +51,6 @@ export default function ProtectPage() {
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file)
-    setIsComplete(false)
-    setProtectedImageUrl(null)
   }
 
   const handleProtect = async () => {
@@ -64,40 +60,61 @@ export default function ProtectPage() {
 
     try {
       // 이미지 업로드
-      const uploadResponse = await apiClient.uploadImage(copyrightInfo, selectedFile)
+      await apiClient.uploadImage(copyrightInfo, selectedFile)
       
       toast({
         title: "업로드 성공",
         description: "이미지가 성공적으로 업로드되고 워터마크가 삽입되었습니다.",
       })
 
-      // 실제 백엔드에서 처리된 이미지 URL을 받아와야 하지만,
-      // 현재는 원본 이미지를 표시
-      const reader = new FileReader()
-      reader.onload = () => {
-        setProtectedImageUrl(reader.result as string)
-        setIsProcessing(false)
-        setIsComplete(true)
-      }
-      reader.readAsDataURL(selectedFile)
+      // 업로드 완료 후 바로 my-images 페이지로 리다이렉션
+      router.push('/my-images')
     } catch (error) {
+      console.error('Upload error:', error);
+      
+      let errorTitle = "업로드 실패";
+      let errorDescription = "이미지 처리 중 오류가 발생했습니다.";
+      
+      if (error instanceof Error) {
+        const message = error.message.toLowerCase();
+        
+        // 백엔드에서 오는 구체적인 에러 메시지 처리
+        if (message.includes('file size') || message.includes('too large') || message.includes('크기')) {
+          errorTitle = "파일 크기 초과";
+          errorDescription = "이미지 파일 크기가 10MB를 초과합니다. 더 작은 파일을 업로드해주세요.";
+        } else if (message.includes('file format') || message.includes('invalid format') || message.includes('png')) {
+          errorTitle = "파일 형식 오류";
+          errorDescription = "PNG 형식의 이미지만 업로드 가능합니다.";
+        } else if (message.includes('corrupted') || message.includes('damaged') || message.includes('손상')) {
+          errorTitle = "파일 손상";
+          errorDescription = "이미지 파일이 손상되었습니다. 다른 파일을 선택해주세요.";
+        } else if (message.includes('unauthorized') || message.includes('token')) {
+          errorTitle = "인증 오류";
+          errorDescription = "로그인이 만료되었습니다. 다시 로그인해주세요.";
+        } else if (message.includes('quota') || message.includes('limit')) {
+          errorTitle = "업로드 한도 초과";
+          errorDescription = "일일 업로드 한도를 초과했습니다. 내일 다시 시도해주세요.";
+        } else if (message.includes('server') || message.includes('internal') || message.includes('500')) {
+          errorTitle = "서버 오류";
+          errorDescription = "서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.";
+        } else if (message.includes('network') || message.includes('fetch')) {
+          errorTitle = "네트워크 오류";
+          errorDescription = "인터넷 연결을 확인하고 다시 시도해주세요.";
+        } else {
+          // 백엔드에서 온 원본 메시지 사용
+          errorDescription = error.message;
+        }
+      }
+      
       toast({
-        title: "처리 실패",
-        description: error instanceof Error ? error.message : "이미지 처리 중 오류가 발생했습니다.",
+        title: errorTitle,
+        description: errorDescription,
         variant: "destructive",
       })
       setIsProcessing(false)
     }
   }
 
-  const handleDownload = () => {
-    if (protectedImageUrl) {
-      const link = document.createElement("a")
-      link.href = protectedImageUrl
-      link.download = `protected_${selectedFile?.name || "image"}`
-      link.click()
-    }
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -180,37 +197,6 @@ export default function ProtectPage() {
             </CardContent>
           </Card>
 
-          {isComplete && (
-            <Card className="mt-8">
-              <CardHeader>
-                <CardTitle className="flex items-center text-green-600">
-                  <CheckCircle className="mr-2 h-5 w-5" />
-                  워터마크 삽입 완료
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-gray-600">
-                  이미지에 보이지 않는 워터마크가 성공적으로 삽입되었습니다.
-                  {copyrightInfo && ` 저작권 정보: "${copyrightInfo}"`}
-                </p>
-
-                {protectedImageUrl && (
-                  <div className="text-center">
-                    <img
-                      src={protectedImageUrl || "/placeholder.png"}
-                      alt="Protected Image"
-                      className="max-w-full h-auto max-h-64 mx-auto rounded-lg mb-4"
-                    />
-                  </div>
-                )}
-
-                <Button onClick={handleDownload} className="w-full" size="lg">
-                  <Download className="mr-2 h-4 w-4" />
-                  보호된 이미지 다운로드
-                </Button>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </main>
 
