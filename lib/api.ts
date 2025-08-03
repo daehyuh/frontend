@@ -68,6 +68,18 @@ interface ImageDetailResponse {
   filename?: string;
 }
 
+interface PaginatedResponse<T> {
+  success: boolean;
+  description: string;
+  data: T[];
+  pagination?: {
+    total: number;
+    limit: number;
+    offset: number;
+    has_more: boolean;
+  };
+}
+
 class ApiClient {
   private static instance: ApiClient;
   private accessToken: string | null = null;
@@ -299,8 +311,8 @@ class ApiClient {
   }
 
   // 사용자 이미지 목록 조회 (API 명세서의 /images 엔드포인트 사용)
-  async getUserImages(limit: number = 20, offset: number = 0): Promise<ApiResponse<any[]>> {
-    return this.request<ApiResponse<any[]>>(`/images?limit=${limit}&offset=${offset}`, {
+  async getUserImages(limit: number = 20, offset: number = 0): Promise<PaginatedResponse<any>> {
+    return this.request<PaginatedResponse<any>>(`/images?limit=${limit}&offset=${offset}`, {
       method: 'GET',
     });
   }

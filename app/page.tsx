@@ -24,7 +24,7 @@ export default function HomePage() {
             콘텐츠의 무결성을 증명합니다.
           </p>
 
-          <Link href="/verify">
+          <Link href="/protect">
             <Button size="lg" className="bg-accent hover:bg-accent/90 text-white px-8 py-4 text-lg">
               무료로 시작하기
             </Button>

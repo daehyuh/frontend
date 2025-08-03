@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { AlertTriangle, CheckCircle, Download, Copy, Share } from "lucide-react"
+import { AlertTriangle, CheckCircle, Printer, Copy } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
@@ -72,57 +72,8 @@ export default function ResultPage({ params }: ResultPageProps) {
     }
   }
 
-  const handleDownloadReport = async () => {
-    try {
-      // 실제 백엔드 API에서 PDF 보고서 다운로드
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
-      const response = await fetch(`${API_BASE_URL}/api/report/${params.id}/pdf`, {
-        headers: {
-          'access-token': localStorage.getItem('access_token') || ''
-        }
-      })
-      
-      if (!response.ok) {
-        // 백엔드 API가 없을 경우 샘플 PDF로 fallback
-        console.warn('백엔드 API 연결 실패, 샘플 보고서를 다운로드합니다.')
-        const link = document.createElement("a")
-        link.href = "/sample-report.pdf"
-        link.download = `aegis-report-${params.id}.pdf`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        
-        toast({
-          title: "샘플 다운로드",
-          description: "샘플 보고서가 다운로드되었습니다. (실제 데이터는 백엔드 연결 후 사용 가능)",
-        })
-        return
-      }
-      
-      const blob = await response.blob()
-      const downloadUrl = window.URL.createObjectURL(blob)
-      
-      const link = document.createElement("a")
-      link.href = downloadUrl
-      link.download = `aegis-report-${params.id}.pdf`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      
-      window.URL.revokeObjectURL(downloadUrl)
-      
-      toast({
-        title: "성공",
-        description: "보고서가 다운로드되었습니다.",
-      })
-    } catch (error) {
-      console.error('보고서 다운로드 실패:', error)
-      toast({
-        title: "다운로드 실패",
-        description: "보고서를 다운로드할 수 없습니다. 잠시 후 다시 시도해주세요.",
-        variant: "destructive",
-      })
-    }
+  const handlePrintReport = () => {
+    window.print()
   }
 
   const formatDate = (dateString: string) => {
@@ -134,9 +85,22 @@ export default function ResultPage({ params }: ResultPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      <style jsx>{`
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+          main {
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+          }
+        }
+      `}</style>
+      <div className="no-print">
+        <Header />
+      </div>
 
-      <main className="pt-24 pb-16">
+      <main className="pt-24 pb-16 print:pt-0 print:pb-0">
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">위변조 검증 보고서</h1>
@@ -202,18 +166,25 @@ export default function ResultPage({ params }: ResultPageProps) {
                     </div>
                   </div>
                   
-                  {validationRecord.detected_watermark_info && (
-                    <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <h4 className="font-semibold text-yellow-800 mb-2">탐지된 워터마크 정보</h4>
-                      <div className="text-sm text-yellow-700">
+                  <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 className="font-semibold text-blue-800 mb-2">
+                      {validationRecord.has_watermark ? "탐지된 워터마크 정보" : "워터마크 분석 결과"}
+                    </h4>
+                    {validationRecord.detected_watermark_info ? (
+                      <div className="text-sm text-blue-700">
                         <p><strong>파일명:</strong> {validationRecord.detected_watermark_info.filename}</p>
                         <p><strong>저작권:</strong> {validationRecord.detected_watermark_info.copyright}</p>
                         {formatDate(validationRecord.detected_watermark_info.upload_time) && (
                           <p><strong>업로드 시간:</strong> {formatDate(validationRecord.detected_watermark_info.upload_time)}</p>
                         )}
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="text-sm text-blue-700">
+                        <p className="no-print">이 이미지에서는 워터마크가 탐지되지 않았습니다.</p>
+                        <p className="no-print">원본 이미지이거나 알려지지 않은 워터마크일 수 있습니다.</p>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -239,10 +210,10 @@ export default function ResultPage({ params }: ResultPageProps) {
 
           {/* Action Buttons */}
           {!loading && validationRecord && (
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button onClick={handleDownloadReport} size="lg">
-                <Download className="mr-2 h-4 w-4" />
-                보고서 다운로드 (PDF)
+            <div className="flex flex-col sm:flex-row gap-4 justify-center no-print">
+              <Button onClick={handlePrintReport} size="lg">
+                <Printer className="mr-2 h-4 w-4" />
+                보고서 인쇄
               </Button>
               <Button variant="outline" onClick={handleCopyLink} size="lg">
                 {copySuccess ? (
@@ -257,16 +228,14 @@ export default function ResultPage({ params }: ResultPageProps) {
                   </>
                 )}
               </Button>
-              <Button variant="outline" size="lg">
-                <Share className="mr-2 h-4 w-4" />
-                결과 공유
-              </Button>
             </div>
           )}
         </div>
       </main>
 
-      <Footer />
+      <div className="no-print">
+        <Footer />
+      </div>
     </div>
   )
 }

@@ -11,6 +11,8 @@ import { Download, Search, Shield } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
+import { Pagination, PaginationInfo } from "@/components/pagination"
+import { usePagination } from "@/hooks/usePagination"
 import { apiClient } from "@/lib/api"
 import { getImageUrl, downloadImage } from "@/lib/image-utils"
 
@@ -35,11 +37,16 @@ export default function MyImagesPage() {
   const router = useRouter()
   const { toast } = useToast()
 
-  // 인증 상태 확인 및 이미지 로드
+  // 페이징 훅
+  const pagination = usePagination({
+    initialPage: 1,
+    pageSize: 12
+  })
+
+  // 인증 상태 확인
   useEffect(() => {
-    const checkAuthAndLoadImages = async () => {
+    const checkAuth = async () => {
       try {
-        // 약간의 지연을 두어 쿠키가 완전히 로드되도록 함
         await new Promise(resolve => setTimeout(resolve, 100))
         
         if (!apiClient.isAuthenticated()) {
@@ -51,25 +58,38 @@ export default function MyImagesPage() {
           router.push("/login")
           return
         }
-
-        // 이미지 목록 로드
-        await loadImages()
+        
+        setIsCheckingAuth(false)
       } catch (error) {
         console.error('Auth check error:', error)
-      } finally {
         setIsCheckingAuth(false)
       }
     }
 
-    checkAuthAndLoadImages()
+    checkAuth()
   }, [router, toast])
 
+  // 이미지 목록 로드
   const loadImages = async () => {
+    if (isCheckingAuth) return
+
     try {
       setLoading(true)
-      const response = await apiClient.getUserImages()
+      const response = await apiClient.getUserImages(pagination.pageSize, pagination.offset)
+      
       if (response.success && response.data) {
         setImages(response.data)
+        
+        // 백엔드에서 total 정보를 제공하는 경우
+        if (response.pagination?.total) {
+          pagination.setTotalItems(response.pagination.total)
+        } else {
+          // total 정보가 없는 경우 현재 페이지 데이터 개수로 추정
+          const estimatedTotal = response.data.length < pagination.pageSize 
+            ? pagination.offset + response.data.length
+            : pagination.offset + response.data.length + 1
+          pagination.setTotalItems(estimatedTotal)
+        }
       }
     } catch (error: any) {
       console.error('이미지 로드 실패:', error)
@@ -83,46 +103,31 @@ export default function MyImagesPage() {
     }
   }
 
+  // 페이지 변경시 이미지 로드
+  useEffect(() => {
+    loadImages()
+  }, [pagination.currentPage, pagination.pageSize, isCheckingAuth])
+
   if (isCheckingAuth) return null;
 
+  // 검색 기능 (클라이언트 사이드 필터링)
   const filteredImages = images.filter((image) => {
     if (!searchTerm.trim()) return true;
     
-    const searchTerm_normalized = searchTerm.trim();
-    const filename = image.filename || '';
-    const copyright = image.copyright || '';
+    const query = searchTerm.trim().normalize('NFC').toLowerCase();
+    const filename = (image.filename || '').normalize('NFC').toLowerCase();
+    const copyright = (image.copyright || '').normalize('NFC').toLowerCase();
+    const imageId = image.image_id.toString();
     
-    // 여러 방법으로 검색 시도
-    const searchPatterns = [
-      searchTerm_normalized.toLowerCase(),
-      searchTerm_normalized.toUpperCase(),
-      searchTerm_normalized,
-    ];
-    
-    const targetTexts = [
-      filename.toLowerCase(),
-      filename.toUpperCase(), 
-      filename,
-      copyright.toLowerCase(),
-      copyright.toUpperCase(),
-      copyright,
-    ];
-    
-    // 패턴 중 하나라도 매칭되면 true
-    const isMatch = searchPatterns.some(pattern => 
-      targetTexts.some(text => text.includes(pattern))
-    );
-    
-    // 디버깅용 로그 (한글 검색 테스트용)
-    if (searchTerm_normalized.length > 0) {
-      console.log('검색어:', searchTerm_normalized);
-      console.log('파일명:', filename);
-      console.log('저작권:', copyright);
-      console.log('매칭 결과:', isMatch);
-    }
-    
-    return isMatch;
+    return filename.includes(query) || 
+           copyright.includes(query) || 
+           imageId.includes(query);
   })
+
+  // 검색 초기화 함수
+  const clearSearch = () => {
+    setSearchTerm('');
+  }
 
 
   const handleDownloadDirect = async (url: string, filename: string) => {
@@ -176,19 +181,25 @@ export default function MyImagesPage() {
             </div>
           )}
 
-          {/* Search Results Summary */}
+          {/* Search Results Summary & Pagination Info */}
           {!loading && images.length > 0 && (
             <div className="flex items-center justify-between mb-6">
-              <p className="text-sm text-gray-600">
+              <div>
                 {searchTerm.trim() ? (
-                  <>검색 결과: <span className="font-semibold">{filteredImages.length}</span>개 (전체 {images.length}개 중)</>
+                  <p className="text-sm text-gray-600">
+                    검색 결과: <span className="font-semibold">{filteredImages.length}</span>개 (페이지 내 {images.length}개 중)
+                  </p>
                 ) : (
-                  <>전체 <span className="font-semibold">{images.length}</span>개의 이미지</>
+                  <PaginationInfo
+                    currentPage={pagination.currentPage}
+                    pageSize={pagination.pageSize}
+                    totalItems={pagination.totalItems}
+                  />
                 )}
-              </p>
+              </div>
               {searchTerm.trim() && (
                 <button
-                  onClick={() => setSearchTerm('')}
+                  onClick={clearSearch}
                   className="text-sm text-blue-600 hover:text-blue-700 underline"
                 >
                   검색 초기화
@@ -199,7 +210,7 @@ export default function MyImagesPage() {
 
           {/* Images Grid */}
           {!loading && filteredImages.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {filteredImages.map((image) => {
                 const uploadDate = new Date(image.upload_time).toLocaleDateString('ko-KR')
                 
@@ -216,24 +227,27 @@ export default function MyImagesPage() {
 
                       <div className="space-y-3">
                         <div>
+                          <p className="text-xs text-gray-400 font-mono mb-1">
+                            ID: {image.image_id}
+                          </p>
                           <h3 className="font-medium text-gray-900 truncate">{image.filename || '파일명 없음'}</h3>
                           <p className="text-sm text-gray-500">
                             {uploadDate}
                           </p>
                         </div>
                         
-                        {/* 카피라이트 정보 강조 표시 */}
-                        {image.copyright && (
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                            <div className="flex items-start space-x-2">
-                              <Shield className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                              <div className="min-w-0 flex-1">
-                                <p className="text-xs font-medium text-blue-800 mb-1">저작권 정보</p>
-                                <p className="text-sm text-blue-700 break-words">{image.copyright}</p>
-                              </div>
+                        {/* 저작권 정보 항상 표시 */}
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <div className="flex items-start space-x-2">
+                            <Shield className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-medium text-blue-800 mb-1">저작권 정보</p>
+                              <p className="text-sm text-blue-700 break-words">
+                                {image.copyright || "저작권 정보가 설정되지 않았습니다"}
+                              </p>
                             </div>
                           </div>
-                        )}
+                        </div>
 
                         <div className="flex items-center justify-between">
                           <Badge className="bg-green-100 text-green-800">보호됨</Badge>
@@ -265,6 +279,18 @@ export default function MyImagesPage() {
                   </Card>
                 )
               })}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {!loading && images.length > 0 && !searchTerm.trim() && pagination.totalPages > 1 && (
+            <div className="mt-8 mb-8 flex justify-center">
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                onPageChange={pagination.goToPage}
+                showQuickJumper={pagination.totalPages > 10}
+              />
             </div>
           )}
 
