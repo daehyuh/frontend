@@ -163,7 +163,7 @@ export default function MyImagesPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="파일명 또는 저작권 정보로 검색..."
+                  placeholder="파일명으로 검색 (현재 페이지 내에서만 검색됩니다)"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -185,9 +185,12 @@ export default function MyImagesPage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 {searchTerm.trim() ? (
-                  <p className="text-sm text-gray-600">
-                    검색 결과: <span className="font-semibold">{filteredImages.length}</span>개 (페이지 내 {images.length}개 중)
-                  </p>
+                  <div className="text-sm text-gray-600">
+                    <p>검색 결과: <span className="font-semibold">{filteredImages.length}</span>개 (현재 페이지 내)</p>
+                    <p className="text-xs text-amber-600 mt-1">
+                      ⚠️ 전체 검색을 위해서는 모든 페이지를 확인해주세요
+                    </p>
+                  </div>
                 ) : (
                   <p className="text-sm text-gray-600">
                     전체 <span className="font-semibold">{pagination.totalItems}</span>개의 이미지

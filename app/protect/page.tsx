@@ -18,11 +18,13 @@ export default function ProtectPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [copyrightInfo, setCopyrightInfo] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
+  const [algorithms, setAlgorithms] = useState<string[]>([])
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>("")
   const router = useRouter()
   const { toast } = useToast()
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
 
-  // 인증 확인
+  // 인증 확인 및 알고리즘 목록 가져오기
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -36,6 +38,20 @@ export default function ProtectPage() {
             variant: "destructive",
           })
           router.push("/login")
+        } else {
+          // 보호 알고리즘 목록 가져오기
+          try {
+            const algorithmsList = await apiClient.getProtectionAlgorithms()
+            setAlgorithms(algorithmsList)
+            if (algorithmsList.length > 0) {
+              setSelectedAlgorithm(algorithmsList[0]) // 첫 번째 알고리즘을 기본 선택
+            }
+          } catch (error) {
+            console.error('Failed to load algorithms:', error)
+            // 기본 알고리즘 설정
+            setAlgorithms(['EditGuard', 'OmniGuard', 'RobustWide'])
+            setSelectedAlgorithm('EditGuard')
+          }
         }
       } catch (error) {
         console.error('Auth check error:', error)
@@ -59,8 +75,8 @@ export default function ProtectPage() {
     setIsProcessing(true)
 
     try {
-      // 이미지 업로드
-      await apiClient.uploadImage(copyrightInfo, selectedFile)
+      // 이미지 업로드 (선택된 알고리즘 포함)
+      await apiClient.uploadImage(copyrightInfo, selectedFile, selectedAlgorithm)
       
       toast({
         title: "업로드 성공",
@@ -173,6 +189,32 @@ export default function ProtectPage() {
                 title="보호할 이미지를 여기에 드래그 앤 드롭하거나 클릭하여 업로드하세요"
                 description="지원 형식: PNG (최대 10MB)"
               />
+
+              {/* 알고리즘 선택 토글바 */}
+              <div className="space-y-3">
+                <Label>보호 알고리즘 선택</Label>
+                <div className="flex flex-wrap gap-2 p-1 bg-gray-100 rounded-lg">
+                  {algorithms.map((algorithm) => (
+                    <Button
+                      key={algorithm}
+                      type="button"
+                      onClick={() => setSelectedAlgorithm(algorithm)}
+                      className={`flex-1 min-w-[100px] px-4 py-2 rounded-md font-medium transition-all duration-200
+                        ${
+                          selectedAlgorithm === algorithm
+                            ? 'bg-primary text-white shadow-sm'
+                            : 'bg-transparent text-gray-600 hover:bg-white hover:text-primary hover:shadow-sm'
+                        }
+                      `}
+                    >
+                      {algorithm}
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-sm text-gray-500">
+                  선택한 알고리즘: <span className="font-medium text-primary">{selectedAlgorithm}</span>
+                </p>
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="copyright">이미지에 삽입할 저작권 정보를 입력하세요 (선택 사항)</Label>

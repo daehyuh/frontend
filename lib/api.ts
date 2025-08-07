@@ -280,11 +280,42 @@ class ApiClient {
     throw new Error('사용자 정보를 찾을 수 없습니다.');
   }
 
-  // 이미지 업로드
-  async uploadImage(copyright: string, file: File): Promise<ImageUploadResponse> {
+  // 보호 알고리즘 목록 조회
+  async getProtectionAlgorithms(): Promise<string[]> {
+    try {
+      const response = await this.request<ApiResponse<any[]>>('/protection-algorithms', {
+        method: 'GET',
+      });
+
+      // 데이터가 있으면 반환
+      if (response.data && response.data.length > 0) {
+        // 응답이 객체 배열인 경우 (예: [{value: "EditGuard", name: "EditGuard"}, ...])
+        if (typeof response.data[0] === 'object' && response.data[0].value) {
+          return response.data.map((item: any) => item.value);
+        }
+        // 응답이 객체 배열이지만 name 속성만 있는 경우
+        else if (typeof response.data[0] === 'object' && response.data[0].name) {
+          return response.data.map((item: any) => item.name);
+        }
+        // 응답이 문자열 배열인 경우
+        else if (typeof response.data[0] === 'string') {
+          return response.data;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch protection algorithms:', error);
+    }
+
+    // 기본 알고리즘 목록 (fallback)
+    return ['EditGuard', 'OmniGuard', 'RobustWide'];
+  }
+
+  // 이미지 업로드 (보호 알고리즘 선택 추가)
+  async uploadImage(copyright: string, file: File, protectionAlgorithm: string = 'EditGuard'): Promise<ImageUploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('copyright', copyright);
+    formData.append('protection_algorithm', protectionAlgorithm);
     
     return this.request<ImageUploadResponse>('/upload', {
       method: 'POST',
@@ -292,10 +323,11 @@ class ApiClient {
     });
   }
 
-  // 이미지 검증
-  async validateImage(file: File): Promise<ValidateResponse> {
+  // 이미지 검증 (검증 알고리즘 선택 추가)
+  async validateImage(file: File, validationAlgorithm: string = 'EditGuard'): Promise<ValidateResponse> {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('validation_algorithm', validationAlgorithm);
 
     const response = await this.request<ApiResponse<ValidateResponse[]>>('/validate', {
       method: 'POST',
@@ -355,7 +387,7 @@ class ApiClient {
         return false;
       }
 
-      const response = await fetch(`${this.baseURL}/verify-token`, {
+      const response = await fetch(`${API_BASE_URL}/verify-token`, {
         method: 'GET',
         headers: {
           'access-token': this.accessToken || '',
