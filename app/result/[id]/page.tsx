@@ -76,12 +76,6 @@ export default function ResultPage({ params }: ResultPageProps) {
     window.print()
   }
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return null
-    const date = new Date(dateString)
-    if (isNaN(date.getTime())) return null
-    return date.toLocaleString('ko-KR')
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -137,7 +131,7 @@ export default function ResultPage({ params }: ResultPageProps) {
               <Card className="mb-8">
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    {validationRecord.has_watermark ? (
+                    {(validationRecord.modification_rate && validationRecord.modification_rate > 1) ? (
                       <>
                         <AlertTriangle className="mr-2 h-6 w-6 text-red-500" />
                         <span className="text-red-600">경고: 변조가 탐지되었습니다</span>
@@ -155,33 +149,37 @@ export default function ResultPage({ params }: ResultPageProps) {
                     <div>
                       <p className="text-sm text-gray-600 mb-1">변조률</p>
                       <p className="text-2xl font-bold">
-                        {validationRecord.modification_rate ? `${(validationRecord.modification_rate * 100).toFixed(1)}%` : 'N/A'}
+                        {validationRecord.modification_rate ? `${validationRecord.modification_rate.toFixed(2)}%` : 'N/A'}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600 mb-1">분석 상태</p>
-                      <Badge variant={validationRecord.has_watermark ? "destructive" : "default"}>
-                        {validationRecord.has_watermark ? "워터마크 탐지" : "원본 확인"}
+                      <Badge variant={(validationRecord.modification_rate && validationRecord.modification_rate > 1) ? "destructive" : "default"}>
+                        {(validationRecord.modification_rate && validationRecord.modification_rate > 1) ? "변조 탐지" : "원본 확인"}
                       </Badge>
                     </div>
                   </div>
                   
                   <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <h4 className="font-semibold text-blue-800 mb-2">
-                      {validationRecord.has_watermark ? "탐지된 워터마크 정보" : "워터마크 분석 결과"}
+                      {(validationRecord.modification_rate && validationRecord.modification_rate > 1) ? "변조 분석 결과" : "이미지 분석 결과"}
                     </h4>
-                    {validationRecord.detected_watermark_info ? (
+                    {(validationRecord.modification_rate && validationRecord.modification_rate > 1) ? (
                       <div className="text-sm text-blue-700">
-                        <p><strong>파일명:</strong> {validationRecord.detected_watermark_info.filename}</p>
-                        <p><strong>저작권:</strong> {validationRecord.detected_watermark_info.copyright}</p>
-                        {formatDate(validationRecord.detected_watermark_info.upload_time) && (
-                          <p><strong>업로드 시간:</strong> {formatDate(validationRecord.detected_watermark_info.upload_time)}</p>
+                        <p><strong>변조율:</strong> {validationRecord.modification_rate.toFixed(2)}%</p>
+                        <p><strong>상태:</strong> 이미지에서 변조가 탐지되었습니다.</p>
+                        {validationRecord.detected_watermark_info && (
+                          <>
+                            <p><strong>원본 파일:</strong> {validationRecord.detected_watermark_info.filename}</p>
+                            <p><strong>저작권:</strong> {validationRecord.detected_watermark_info.copyright}</p>
+                          </>
                         )}
                       </div>
                     ) : (
                       <div className="text-sm text-blue-700">
-                        <p className="no-print">이 이미지에서는 워터마크가 탐지되지 않았습니다.</p>
-                        <p className="no-print">원본 이미지이거나 알려지지 않은 워터마크일 수 있습니다.</p>
+                        <p><strong>변조율:</strong> {validationRecord.modification_rate ? `${validationRecord.modification_rate.toFixed(2)}%` : '0.0%'}</p>
+                        <p><strong>상태:</strong> 원본 이미지로 확인되었습니다.</p>
+                        <p className="no-print">변조율이 1% 미만으로 안전한 이미지입니다.</p>
                       </div>
                     )}
                   </div>

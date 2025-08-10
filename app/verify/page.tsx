@@ -73,7 +73,7 @@ export default function VerifyPage() {
     setIsProcessing(true)
 
     try {
-      // 이미지 검증 (선택된 알고리즘 포함)
+      // 이미지 검증 (선택된 모델 포함)
       const validateResponse = await apiClient.validateImage(selectedFile, selectedAlgorithm)
       
       console.log('Validation response:', validateResponse)
@@ -83,7 +83,7 @@ export default function VerifyPage() {
         description: "이미지 분석이 완료되었습니다.",
       })
 
-      // 백엔드에서 받은 validation_id로 결과 페이지 이동
+      // 백엔드에서 받은 validation_id UUID로 결과 페이지 이동
       if (validateResponse && validateResponse.validation_id) {
         router.push(`/result/${validateResponse.validation_id}`)
       } else {

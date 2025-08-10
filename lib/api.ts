@@ -32,12 +32,9 @@ interface ImageUploadResponse {
 
 interface ValidateResponse {
   validation_id: string;
-  message: string;
-  input_data: string;
-  '64bit': number;
-  output_sr_h_data: string;
-  s3_path: string;
-  modification_rate: number;
+  original_image_id: string;
+  tampering_rate: number;
+  tampered_regions_mask: string;
 }
 
 interface ValidationRecordDetail {
@@ -323,11 +320,11 @@ class ApiClient {
     });
   }
 
-  // 이미지 검증 (검증 알고리즘 선택 추가)
-  async validateImage(file: File, validationAlgorithm: string = 'EditGuard'): Promise<ValidateResponse> {
+  // 이미지 검증 (검증 모델 선택 추가)
+  async validateImage(file: File, model: string = 'EditGuard'): Promise<ValidateResponse> {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('validation_algorithm', validationAlgorithm);
+    formData.append('model', model);
 
     const response = await this.request<ApiResponse<ValidateResponse[]>>('/validate', {
       method: 'POST',
