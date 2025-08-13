@@ -140,20 +140,26 @@ export default function HomePage() {
               </CardContent>
             </Card>
           </div>
+                  
+        {/* Large Triangle Arrow */}
+          <div className="arrow-indicator">
+            <div className="large-triangle-arrow"></div>
+          </div>
+
         </div>
       </section>
-
       {/* Trust Evidence Section */}
       <section className="pt-4 pb-16" style={{backgroundColor: '#F7F7F7'}}>
         <div className="container mx-auto px-6 lg:px-8">
           <div className="text-center">
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">신뢰할 수 있는 기술 증거</h3>
-            <p className="text-lg text-gray-600 max-w-4xl mx-auto">
-              어떤 모델을 선택하든, AEGIS의 검증 결과는 위변조 여부, 원본 소유권 정보가<br />
-              <span className="ml-8">담긴{" "}
-              <span className="text-blue-700 font-bold">'무결성 검증 보고서'</span>{" "}
-              형태로 제공되어, 신뢰도 높은 기술 증거로 활용될 수 있습니다.</span>
-            </p>
+            <h3 className="text-3xl font-bold text-gray-900 mb-4">신뢰할 수 있는 기술 증거</h3>
+            <div className="max-w-4xl mx-auto">
+              <p className="text-lg text-gray-600 text-center">
+                어떤 모델을 선택하든, AEGIS의 검증 결과는 위변조 여부, 원본 소유권 정보가 담긴<br />
+                <span className="font-bold" style={{color: '#0B1179'}}>'무결성 검증 보고서'</span>{" "}
+                형태로 제공되어, 신뢰도 높은 기술 증거로 활용될 수 있습니다.
+              </p>
+            </div>
           </div>
         </div>
       </section>

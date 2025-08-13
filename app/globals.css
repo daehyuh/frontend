@@ -122,27 +122,28 @@
   overflow: hidden;
 }
 
-.triangle-shape {
-  width: 0;
-  height: 0;
-  position: absolute;
-  left: 50%;
-  top: 0;
-  transform: translateX(-50%);
-  border-style: solid;
-  border-width: 0 551.5px 107px 551.5px;
-  border-color: transparent transparent rgba(114, 131, 152, 0.5) transparent;
-  background: linear-gradient(135deg, rgba(114, 131, 152, 0.5) 0%, rgba(191, 219, 254, 0.5) 100%);
+
+
+/* Large triangle arrow pointing to trust evidence section */
+.arrow-indicator {
+  position: relative;
+  width: 100%;
+  height: 80px;
+  z-index: 1;
 }
 
-/* Alternative using clip-path for better gradient support */
-.triangle-gradient {
+.large-triangle-arrow {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 107px;
-  background: linear-gradient(135deg, rgba(114, 131, 152, 0.5) 0%, rgba(191, 219, 254, 0.5) 100%);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 95%;
+  height: 80px;
+
+background: linear-gradient(
+  135deg,
+  rgba(114, 131, 152, 0.5) -50%,
+  rgba(191, 219, 254, 0.5) 50%
+  );
   clip-path: polygon(0 0, 100% 0, 50% 100%);
 }
 

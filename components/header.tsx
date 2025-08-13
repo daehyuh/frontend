@@ -55,11 +55,13 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <Image
-              src="/Logo.png"
+              src="/AEGIS.png"
               alt="AEGIS"
               width={78}
               height={20}
-              className="object-contain"
+              className={`object-contain transition-all duration-300 ${
+                shouldUseTransparentHeader ? "brightness-100" : "brightness-0"
+              }`}
             />
           </Link>
 
