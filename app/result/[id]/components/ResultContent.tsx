@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/use-toast"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import MaskOverlaySlider from "@/components/mask-overlay-slider"
-import { apiClient, type ValidationRecordDetail } from "@/lib/api"
+import type { ValidationRecordDetail } from "@/lib/api"
 
 interface ResultContentProps {
   validationId: string
@@ -28,21 +28,30 @@ export default function ResultContent({ validationId }: ResultContentProps) {
   useEffect(() => {
     const fetchValidationRecord = async () => {
       try {
-        // 인증 상태 확인
+        // 약간의 지연 후 바로 데이터 로드 (인증 확인 제거)
         await new Promise(resolve => setTimeout(resolve, 100))
-        
-        if (!apiClient.isAuthenticated()) {
-          toast({
-            title: "로그인 필요",
-            description: "검증 결과를 보려면 로그인이 필요합니다.",
-            variant: "destructive",
-          })
-          router.push(`/login?redirect=/result/${validationId}`)
-          return
-        }
 
         setLoading(true)
-        const record = await apiClient.getValidationRecordByUuid(validationId)
+        
+        // 직접 fetch로 public API 호출 (인증 없이)
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/validation-record/uuid/${validationId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch validation record')
+        }
+
+        const data = await response.json()
+        const record = data.data && data.data[0] ? data.data[0] : null
+
+        if (!record) {
+          throw new Error('No validation record found')
+        }
+
         setValidationRecord(record)
       } catch (error: any) {
         console.error('검증 기록 조회 실패:', error)
@@ -58,7 +67,7 @@ export default function ResultContent({ validationId }: ResultContentProps) {
     }
 
     fetchValidationRecord()
-  }, [validationId, router, toast])
+  }, [validationId, toast])
 
   if (isCheckingAuth) return null
 
