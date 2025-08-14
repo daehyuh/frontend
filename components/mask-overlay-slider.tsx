@@ -24,6 +24,7 @@ export default function MaskOverlaySlider({
   const [isPlaying, setIsPlaying] = useState(false)
   const [showMaskOnly, setShowMaskOnly] = useState(false)
   const [imagesLoaded, setImagesLoaded] = useState(false)
+  const [imageError, setImageError] = useState<string | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef<number>()
   
@@ -46,11 +47,11 @@ export default function MaskOverlaySlider({
         await Promise.all([
           new Promise((resolve, reject) => {
             origImg.onload = resolve
-            origImg.onerror = reject
+            origImg.onerror = () => reject(new Error('원본 이미지 로드 실패'))
           }),
           new Promise((resolve, reject) => {
             mskImg.onload = resolve
-            mskImg.onerror = reject
+            mskImg.onerror = () => reject(new Error('마스크 이미지 로드 실패'))
           })
         ])
 
@@ -59,6 +60,7 @@ export default function MaskOverlaySlider({
         setImagesLoaded(true)
       } catch (error) {
         console.error('이미지 로드 실패:', error)
+        setImageError(error instanceof Error ? error.message : '이미지 로드에 실패했습니다')
       }
     }
 
@@ -165,6 +167,31 @@ export default function MaskOverlaySlider({
 
   const toggleMaskView = () => {
     setShowMaskOnly(!showMaskOnly)
+  }
+
+  if (imageError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>변조 영역 분석</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-12">
+            <AlertTriangle className="h-16 w-16 mx-auto mb-4 text-yellow-500" />
+            <h3 className="text-lg font-semibold mb-2 text-gray-900">이미지를 불러올 수 없습니다</h3>
+            <p className="text-gray-600 mb-4">
+              파일명: {filename}
+            </p>
+            <p className="text-sm text-gray-500 mb-2">
+              {imageError}
+            </p>
+            <p className="text-xs text-gray-400">
+              원본 이미지나 마스크 파일이 삭제되었거나 접근할 수 없는 상태입니다.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   if (!imagesLoaded) {

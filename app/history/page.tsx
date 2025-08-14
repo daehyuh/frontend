@@ -167,7 +167,7 @@ export default function HistoryPage() {
                           <div className="flex items-center">
                             <span className="mr-1">수정률:</span>
                             <span className={`font-medium ${getScoreColor(record.modification_rate ? record.modification_rate * 100 : 0)}`}>
-                              {record.modification_rate ? `${(record.modification_rate * 100).toFixed(1)}%` : 'N/A'}
+                              {record.modification_rate ? `${(record.modification_rate * 100).toFixed(1)}%` : '0%'}
                             </span>
                           </div>
                           {record.detected_watermark_image_id && (

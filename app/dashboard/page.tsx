@@ -326,7 +326,7 @@ export default function DashboardPage() {
                                 {(validation.modification_rate && validation.modification_rate > 1) ? "변조 탐지" : "원본 확인"}
                               </Badge>
                               <p className="text-xs sm:text-sm text-gray-600">
-                                변조률: {validation.modification_rate ? `${validation.modification_rate.toFixed(2)}%` : 'N/A'}
+                                변조률: {validation.modification_rate ? `${validation.modification_rate.toFixed(2)}%` : '0%'}
                               </p>
                             </div>
                             <Button 

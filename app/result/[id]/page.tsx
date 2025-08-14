@@ -23,6 +23,7 @@ export default function ResultPage({ params }: ResultPageProps) {
   const [loading, setLoading] = useState(true)
   const [validationRecord, setValidationRecord] = useState<ValidationRecordDetail | null>(null)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const [imageError, setImageError] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -75,6 +76,10 @@ export default function ResultPage({ params }: ResultPageProps) {
 
   const handlePrintReport = () => {
     window.print()
+  }
+
+  const handleImageError = () => {
+    setImageError(true)
   }
 
 
@@ -150,7 +155,7 @@ export default function ResultPage({ params }: ResultPageProps) {
                     <div>
                       <p className="text-sm text-gray-600 mb-1">변조률</p>
                       <p className="text-2xl font-bold">
-                        {validationRecord.modification_rate ? `${validationRecord.modification_rate.toFixed(2)}%` : 'N/A'}
+                        {validationRecord.modification_rate ? `${validationRecord.modification_rate.toFixed(2)}%` : '0%'}
                       </p>
                     </div>
                     <div>
@@ -200,20 +205,36 @@ export default function ResultPage({ params }: ResultPageProps) {
               )}
 
               {/* Fallback Image Display */}
-              {!validationRecord.s3_mask_url && (
+              {!validationRecord.s3_mask_url && validationRecord.s3_path && (
                 <Card className="mb-8">
                   <CardHeader>
-                    <CardTitle>검증된 이미지</CardTitle>
+                    <CardTitle>입력 이미지</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-center">
-                      <img
-                        src={validationRecord.s3_path}
-                        alt={validationRecord.input_filename}
-                        className="max-w-full h-auto mx-auto rounded-lg shadow-lg"
-                        style={{ maxHeight: '600px' }}
-                      />
-                      <p className="text-sm text-gray-600 mt-2">검증에 사용된 이미지</p>
+                      {!imageError ? (
+                        <>
+                          <img
+                            src={validationRecord.s3_path}
+                            alt={validationRecord.input_filename}
+                            className="max-w-full h-auto mx-auto rounded-lg shadow-lg"
+                            style={{ maxHeight: '600px' }}
+                            onError={handleImageError}
+                          />
+                          <p className="text-sm text-gray-600 mt-2">검증에 사용된 입력 이미지</p>
+                        </>
+                      ) : (
+                        <div className="py-12">
+                          <AlertTriangle className="h-16 w-16 mx-auto mb-4 text-yellow-500" />
+                          <h3 className="text-lg font-semibold mb-2 text-gray-900">이미지를 불러올 수 없습니다</h3>
+                          <p className="text-gray-600 mb-4">
+                            파일명: {validationRecord.input_filename}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            이미지 파일이 삭제되었거나 접근할 수 없는 상태입니다.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
