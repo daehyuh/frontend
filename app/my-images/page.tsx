@@ -53,7 +53,7 @@ export default function MyImagesPage() {
             description: "내 이미지에 접근하려면 로그인이 필요합니다.",
             variant: "destructive",
           })
-          router.push("/login")
+          router.push("/login?redirect=/my-images")
           return
         }
         

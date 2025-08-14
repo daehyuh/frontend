@@ -35,7 +35,7 @@ export default function VerifyPage() {
             description: "이 서비스를 이용하려면 로그인이 필요합니다.",
             variant: "destructive",
           })
-          router.push("/login")
+          router.push("/login?redirect=/verify")
         } else {
           // 보호 알고리즘 목록 가져오기 (검증에서도 동일한 알고리즘 사용)
           try {

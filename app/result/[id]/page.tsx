@@ -30,18 +30,8 @@ export default function ResultPage({ params }: ResultPageProps) {
   useEffect(() => {
     const fetchValidationRecord = async () => {
       try {
-        // 인증 상태 확인
+        // 약간의 지연 후 바로 데이터 로드 (인증 확인 제거)
         await new Promise(resolve => setTimeout(resolve, 100))
-        
-        if (!apiClient.isAuthenticated()) {
-          toast({
-            title: "로그인 필요",
-            description: "검증 결과를 보려면 로그인이 필요합니다.",
-            variant: "destructive",
-          })
-          router.push("/login")
-          return
-        }
 
         setLoading(true)
         const record = await apiClient.getValidationRecordByUuid(params.id)
@@ -60,7 +50,7 @@ export default function ResultPage({ params }: ResultPageProps) {
     }
 
     fetchValidationRecord()
-  }, [params.id, router, toast])
+  }, [params.id, toast])
 
   if (isCheckingAuth) return null
 
@@ -151,7 +141,7 @@ export default function ResultPage({ params }: ResultPageProps) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <p className="text-sm text-gray-600 mb-1">변조률</p>
                       <p className="text-2xl font-bold">
@@ -164,6 +154,12 @@ export default function ResultPage({ params }: ResultPageProps) {
                         {(validationRecord.modification_rate && validationRecord.modification_rate > 1.0) ? "변조 탐지" : "원본 확인"}
                       </Badge>
                     </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">검증 알고리즘</p>
+                      <p className="text-lg font-semibold text-blue-600">
+                        {validationRecord.validation_algorithm}
+                      </p>
+                    </div>
                   </div>
                   
                   <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -173,6 +169,7 @@ export default function ResultPage({ params }: ResultPageProps) {
                     {(validationRecord.modification_rate && validationRecord.modification_rate > 1.0) ? (
                       <div className="text-sm text-blue-700">
                         <p><strong>변조율:</strong> {validationRecord.modification_rate.toFixed(2)}%</p>
+                        <p><strong>검증 알고리즘:</strong> {validationRecord.validation_algorithm}</p>
                         <p><strong>상태:</strong> 이미지에서 변조가 탐지되었습니다.</p>
                         {validationRecord.detected_watermark_info && (
                           <>
@@ -184,6 +181,7 @@ export default function ResultPage({ params }: ResultPageProps) {
                     ) : (
                       <div className="text-sm text-blue-700">
                         <p><strong>변조율:</strong> {validationRecord.modification_rate ? `${validationRecord.modification_rate.toFixed(2)}%` : '0.0%'}</p>
+                        <p><strong>검증 알고리즘:</strong> {validationRecord.validation_algorithm}</p>
                         <p><strong>상태:</strong> 원본 이미지로 확인되었습니다.</p>
                         <p className="no-print">변조율이 1.0% 이하로 변조가 아닌 것으로 판단됩니다.</p>
                       </div>

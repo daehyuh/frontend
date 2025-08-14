@@ -37,7 +37,7 @@ export default function ProtectPage() {
             description: "이 서비스를 이용하려면 로그인이 필요합니다.",
             variant: "destructive",
           })
-          router.push("/login")
+          router.push("/login?redirect=/protect")
         } else {
           // 보호 알고리즘 목록 가져오기
           try {

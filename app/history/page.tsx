@@ -20,6 +20,7 @@ interface ValidationRecord {
   has_watermark: boolean
   detected_watermark_image_id: number | null
   modification_rate: number | null
+  validation_algorithm: string
   validation_time: string
   s3_validation_image_url: string
 }
@@ -44,7 +45,7 @@ export default function HistoryPage() {
             description: "검증 기록을 보려면 로그인이 필요합니다.",
             variant: "destructive",
           })
-          router.push("/login")
+          router.push("/login?redirect=/history")
           return
         }
 
@@ -168,6 +169,12 @@ export default function HistoryPage() {
                             <span className="mr-1">수정률:</span>
                             <span className={`font-medium ${getScoreColor(record.modification_rate ? record.modification_rate * 100 : 0)}`}>
                               {record.modification_rate ? `${(record.modification_rate * 100).toFixed(1)}%` : '0%'}
+                            </span>
+                          </div>
+                          <div className="flex items-center">
+                            <span className="mr-1">알고리즘:</span>
+                            <span className="font-medium text-blue-600">
+                              {record.validation_algorithm}
                             </span>
                           </div>
                           {record.detected_watermark_image_id && (

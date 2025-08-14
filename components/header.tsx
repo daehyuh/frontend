@@ -12,7 +12,8 @@ import { useToast } from "@/components/ui/use-toast"
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+  const [isAuthLoading, setIsAuthLoading] = useState(true)
   const pathname = usePathname()
   const router = useRouter()
   const { toast } = useToast()
@@ -30,9 +31,35 @@ export default function Header() {
   }, [])
 
   useEffect(() => {
-    // 인증 상태 확인
-    setIsAuthenticated(apiClient.isAuthenticated())
-  }, [pathname])
+    // 초기 인증 상태 확인 (컴포넌트 마운트 시에만)
+    const checkAuthStatus = async () => {
+      try {
+        // 약간의 지연을 두어 쿠키가 완전히 로드되도록 함
+        await new Promise(resolve => setTimeout(resolve, 50))
+        const authStatus = apiClient.isAuthenticated()
+        setIsAuthenticated(authStatus)
+      } catch (error) {
+        console.error('Auth check error:', error)
+        setIsAuthenticated(false)
+      } finally {
+        setIsAuthLoading(false)
+      }
+    }
+
+    // 인증 상태 변경 이벤트 리스너
+    const handleAuthChange = () => {
+      setIsAuthenticated(apiClient.isAuthenticated())
+    }
+
+    checkAuthStatus()
+    
+    // 로그인/로그아웃 시 헤더 상태 즉시 업데이트
+    window.addEventListener('authStateChanged', handleAuthChange)
+    
+    return () => {
+      window.removeEventListener('authStateChanged', handleAuthChange)
+    }
+  }, []) // pathname dependency 제거
 
   const handleLogout = () => {
     apiClient.logout()
@@ -42,6 +69,11 @@ export default function Header() {
       description: "성공적으로 로그아웃되었습니다.",
     })
     router.push("/")
+  }
+
+  // 인증 상태를 즉시 업데이트하는 함수 (로그인 성공 시 사용)
+  const updateAuthStatus = () => {
+    setIsAuthenticated(apiClient.isAuthenticated())
   }
 
   return (
@@ -141,7 +173,10 @@ export default function Header() {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            {isAuthenticated ? (
+            {isAuthLoading ? (
+              // 로딩 중일 때는 빈 공간 유지 (깜빡임 방지)
+              <div className="w-32 h-10"></div>
+            ) : isAuthenticated ? (
               <>
                 <Button
                   variant="outline"
@@ -228,7 +263,10 @@ export default function Header() {
                 내 이미지
               </Link>
               <div className="flex flex-col space-y-2 pt-4 border-t">
-                {isAuthenticated ? (
+                {isAuthLoading ? (
+                  // 모바일에서도 로딩 중일 때 빈 공간 유지
+                  <div className="h-10"></div>
+                ) : isAuthenticated ? (
                   <>
                     <Button
                       variant="outline"

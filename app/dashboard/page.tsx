@@ -26,7 +26,7 @@ interface ValidationRecord {
   detected_watermark_image_id: number | null;
   modification_rate: number | null;
   validation_time: string;
-  validation_algorithm?: string;
+  validation_algorithm: string;
   s3_validation_image_url: string;
 }
 
@@ -63,8 +63,8 @@ export default function DashboardPage() {
   const [totalValidations, setTotalValidations] = useState(0)
   const itemsPerPage = 10
   
-  // 아코디언 상태
-  const [isValidationsExpanded, setIsValidationsExpanded] = useState(false)
+  // 아코디언 상태 (기본값: 펼쳐져 있음)
+  const [isValidationsExpanded, setIsValidationsExpanded] = useState(true)
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -77,7 +77,7 @@ export default function DashboardPage() {
           description: "대시보드에 접근하려면 로그인이 필요합니다.",
           variant: "destructive",
         })
-        router.push("/login")
+        router.push("/login?redirect=/dashboard")
         setIsCheckingAuth(false)
         return
       }
@@ -113,7 +113,7 @@ export default function DashboardPage() {
           variant: "destructive",
         })
         apiClient.logout()
-        router.push("/login")
+        router.push("/login?redirect=/dashboard")
       } finally {
         setIsCheckingAuth(false)
         setLoading(false)
@@ -318,16 +318,16 @@ export default function DashboardPage() {
                                 <span className="truncate">{formatDate(validation.validation_time)}</span>
                               </div>
                             </div>
-                            <Badge variant="secondary" className="flex-shrink-0 hidden sm:inline-flex">검증</Badge>
                           </div>
                           <div className="flex items-center justify-between sm:justify-end sm:flex-col sm:items-end space-x-3 sm:space-x-0 sm:space-y-2">
                             <div className="flex items-center space-x-2 sm:flex-col sm:items-end sm:space-x-0 sm:space-y-1">
                               <Badge variant={(validation.modification_rate && validation.modification_rate > 1) ? "destructive" : "default"} className="text-xs">
                                 {(validation.modification_rate && validation.modification_rate > 1) ? "변조 탐지" : "원본 확인"}
                               </Badge>
-                              <p className="text-xs sm:text-sm text-gray-600">
-                                변조률: {validation.modification_rate ? `${validation.modification_rate.toFixed(2)}%` : '0%'}
-                              </p>
+                              <div className="text-xs sm:text-sm text-gray-600 text-right">
+                                <p>변조률: {validation.modification_rate ? `${validation.modification_rate.toFixed(2)}%` : '0%'}</p>
+                                <p>알고리즘: <span className="text-blue-600 font-medium">{validation.validation_algorithm}</span></p>
+                              </div>
                             </div>
                             <Button 
                               variant="outline" 

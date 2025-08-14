@@ -20,18 +20,23 @@ import { isAuthenticated } from "@/lib/auth-utils"
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const router = useRouter()
   const { toast } = useToast()
 
-  // 로그인된 상태 확인
+  // 로그인된 상태 확인 및 로그인 유지 설정 복원
   useEffect(() => {
     const checkAuth = async () => {
       try {
         // 약간의 지연을 두어 쿠키가 완전히 로드되도록 함
         await new Promise(resolve => setTimeout(resolve, 100))
+        
+        // 로그인 유지 설정 복원
+        const rememberMeSetting = localStorage.getItem('remember_me') === 'true';
+        setRememberMe(rememberMeSetting);
         
         if (isAuthenticated()) {
           console.log('User is already authenticated, redirecting to main page...')
@@ -55,23 +60,18 @@ export default function LoginPage() {
 
     try {
       console.log('Calling apiClient.login...');
-      await apiClient.login(email, password)
+      await apiClient.login(email, password, rememberMe)
       console.log('Login successful');
         
       toast({
         title: "로그인 성공",
-        description: "AEGIS 서비스에 오신 것을 환영합니다.",
+        description: rememberMe ? "로그인 상태가 유지됩니다." : "AEGIS 서비스에 오신 것을 환영합니다.",
       })
       
-      // 메인 페이지로 이동
-      console.log('Attempting to navigate to main page...');
-      router.push("/")
-      
-      // 라우터 이동이 안 되면 강제로 이동
-      setTimeout(() => {
-        console.log('Fallback navigation using window.location...');
-        window.location.href = "/"
-      }, 1000)
+      // 원래 방문하려던 페이지가 있으면 그곳으로, 없으면 대시보드로 이동
+      const redirectTo = new URLSearchParams(window.location.search).get('redirect') || '/dashboard';
+      console.log('Redirecting to:', redirectTo);
+      router.push(redirectTo);
     } catch (error) {
       console.error('Login error:', error);
       
@@ -182,7 +182,13 @@ export default function LoginPage() {
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <input type="checkbox" id="remember" className="rounded" />
+                    <input 
+                      type="checkbox" 
+                      id="remember" 
+                      className="rounded" 
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                    />
                     <Label htmlFor="remember" className="text-sm">
                       로그인 상태 유지
                     </Label>
