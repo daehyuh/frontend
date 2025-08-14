@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Download, Search, Shield, ChevronLeft, ChevronRight } from "lucide-react"
+import { Download, Search, Shield, ChevronLeft, ChevronRight, Calendar, X, Eye } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
@@ -32,6 +32,8 @@ export default function MyImagesPage() {
   const [images, setImages] = useState<ImageRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<ImageRecord | null>(null)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -128,44 +130,19 @@ export default function MyImagesPage() {
     setSearchTerm('');
   }
 
+  // 모달 열기
+  const openImageModal = (image: ImageRecord) => {
+    setSelectedImage(image);
+    setIsModalOpen(true);
+  }
 
-  const handleDownloadOriginal = async (url: string, originalFilename: string) => {
-    try {
-      const baseName = originalFilename.replace(/\.[^/.]+$/, ""); // 확장자 제거
-      const downloadFilename = `${baseName}_orig.png`;
-      await downloadImage(url, downloadFilename);
-      toast({
-        title: "성공",
-        description: "원본 이미지가 다운로드되었습니다.",
-      });
-    } catch (error) {
-      console.error('원본 다운로드 실패:', error);
-      toast({
-        title: "오류",
-        description: "원본 이미지 다운로드에 실패했습니다.",
-        variant: "destructive",
-      });
-    }
-  };
+  // 모달 닫기
+  const closeImageModal = () => {
+    setIsModalOpen(false);
+    setSelectedImage(null);
+  }
 
-  const handleDownloadWatermark = async (url: string, originalFilename: string) => {
-    try {
-      const baseName = originalFilename.replace(/\.[^/.]+$/, ""); // 확장자 제거
-      const downloadFilename = `${baseName}_wm.png`;
-      await downloadImage(url, downloadFilename);
-      toast({
-        title: "성공",
-        description: "워터마크 이미지가 다운로드되었습니다.",
-      });
-    } catch (error) {
-      console.error('워터마크 다운로드 실패:', error);
-      toast({
-        title: "오류",
-        description: "워터마크 이미지 다운로드에 실패했습니다.",
-        variant: "destructive",
-      });
-    }
-  };
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -229,102 +206,157 @@ export default function MyImagesPage() {
             </div>
           )}
 
-          {/* Images Grid */}
+          {/* Images List - Horizontal Cards */}
           {!loading && filteredImages.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="space-y-4">
               {filteredImages.map((image) => {
                 const uploadDate = new Date(image.upload_time).toLocaleDateString('ko-KR')
                 
                 return (
-                  <Card key={image.image_id} className="hover:shadow-lg transition-shadow h-full">
-                    <CardContent className="p-4 h-full flex flex-col">
-                      {/* 이미지 - 고정 크기 */}
-                      <div className="aspect-square mb-4 overflow-hidden rounded-lg bg-gray-100 flex-shrink-0">
-                        {image.s3_paths?.gt ? (
-                          <img
-                            src={getImageUrl(image.s3_paths.gt)}
-                            alt={image.filename}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400">
-                            <div className="text-center">
-                              <Shield className="h-8 w-8 mx-auto mb-2" />
-                              <p className="text-sm">이미지 없음</p>
-                            </div>
+                  <Card key={image.image_id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => openImageModal(image)}>
+                    <CardContent className="p-6">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-center space-x-4">
+                          {/* 이미지 썸네일 */}
+                          <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                            {image.s3_paths?.gt ? (
+                              <img
+                                src={getImageUrl(image.s3_paths.gt)}
+                                alt={image.filename}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <Shield className="w-8 h-8 text-gray-400" />
+                            )}
                           </div>
-                        )}
-                      </div>
-
-                      {/* 컨텐츠 - 나머지 공간 차지 */}
-                      <div className="flex-1 flex flex-col space-y-3">
-                        <div className="flex-shrink-0">
-                          <p className="text-xs text-gray-400 font-mono mb-1">
-                            ID: {image.image_id}
-                          </p>
-                          <h3 className="font-medium text-gray-900 truncate" title={image.filename}>
-                            {image.filename || '파일명 없음'}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            {uploadDate}
-                          </p>
-                        </div>
-
-                        {/* 알고리즘 정보 표시 */}
-                        {image.protection_algorithm && (
-                          <div className="bg-purple-50 border border-purple-200 rounded-lg p-2">
-                            <div className="flex items-center space-x-2">
-                              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                              <div>
-                                <p className="text-xs font-medium text-purple-800">보호 알고리즘</p>
-                                <p className="text-sm text-purple-700">{image.protection_algorithm}</p>
+                          
+                          <div className="flex-1 space-y-2 min-w-0">
+                            <div className="flex items-center space-x-3">
+                              <h3 className="font-semibold text-lg text-gray-900 truncate">
+                                {image.filename || '파일명 없음'}
+                              </h3>
+                              <Badge className="bg-green-100 text-green-800">
+                                <Shield className="w-3 h-3 mr-1" />
+                                보호됨
+                              </Badge>
+                            </div>
+                            
+                            <div className="flex items-center text-sm text-gray-500 space-x-4">
+                              <div className="flex items-center">
+                                <Calendar className="w-4 h-4 mr-1" />
+                                {uploadDate}
                               </div>
+                              <div className="flex items-center">
+                                <span className="mr-1">ID:</span>
+                                <span className="font-medium text-blue-600">
+                                  #{image.image_id}
+                                </span>
+                              </div>
+                              {image.protection_algorithm && (
+                                <div className="flex items-center">
+                                  <span className="mr-1">알고리즘:</span>
+                                  <span className="font-medium text-purple-600">
+                                    {image.protection_algorithm}
+                                  </span>
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        )}
-                        
-                        {/* 저작권 정보 */}
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex-shrink-0">
-                          <div className="flex items-start space-x-2">
-                            <Shield className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-medium text-blue-800 mb-1">저작권 정보</p>
-                              <p className="text-sm text-blue-700 break-words line-clamp-2" title={image.copyright}>
+
+                            <div className="text-sm text-gray-600">
+                              <span className="mr-1">저작권:</span>
+                              <span className="text-blue-600">
                                 {image.copyright || "저작권 정보가 설정되지 않았습니다"}
-                              </p>
+                              </span>
                             </div>
                           </div>
                         </div>
 
-                        {/* 하단 고정 영역 */}
-                        <div className="flex-shrink-0 space-y-3 mt-auto">
-                          <div className="flex items-center justify-between">
-                            <Badge className="bg-green-100 text-green-800">보호됨</Badge>
-                            <Badge variant="outline">원본 보호</Badge>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="bg-transparent"
-                              onClick={() => handleDownloadOriginal(image.s3_paths?.gt || '', image.filename)}
-                              disabled={!image.s3_paths?.gt}
-                            >
-                              <Download className="h-4 w-4 mr-1" />
-                              원본
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="bg-transparent"
-                              onClick={() => handleDownloadWatermark(image.s3_paths?.sr_h || '', image.filename)}
-                              disabled={!image.s3_paths?.sr_h}
-                            >
-                              <Download className="h-4 w-4 mr-1" />
-                              워터마크
-                            </Button>
-                          </div>
+                        {/* 다운로드 버튼들 */}
+                        <div className="flex items-center space-x-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="bg-transparent"
+                            onClick={async (e) => {
+                              e.stopPropagation(); // 카드 클릭 이벤트 전파 방지
+                              const baseName = image.filename.replace(/\.[^/.]+$/, "");
+                              const downloadFilename = `${baseName}_origi.png`;
+                              console.log('다운로드 시도:', image.s3_paths?.gt, downloadFilename);
+                              
+                              try {
+                                const response = await fetch(image.s3_paths?.gt || '');
+                                const blob = await response.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.download = downloadFilename;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                
+                                window.URL.revokeObjectURL(url);
+                                
+                                toast({
+                                  title: "다운로드 완료",
+                                  description: `${downloadFilename}이 다운로드되었습니다.`,
+                                });
+                              } catch (error) {
+                                console.error('다운로드 실패:', error);
+                                toast({
+                                  title: "다운로드 실패",
+                                  description: "이미지 다운로드 중 오류가 발생했습니다.",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                            disabled={!image.s3_paths?.gt}
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            원본
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="bg-transparent"
+                            onClick={async (e) => {
+                              e.stopPropagation(); // 카드 클릭 이벤트 전파 방지
+                              const baseName = image.filename.replace(/\.[^/.]+$/, "");
+                              const downloadFilename = `${baseName}_wm.png`;
+                              console.log('다운로드 시도:', image.s3_paths?.sr_h, downloadFilename);
+                              
+                              try {
+                                const response = await fetch(image.s3_paths?.sr_h || '');
+                                const blob = await response.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.download = downloadFilename;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                
+                                window.URL.revokeObjectURL(url);
+                                
+                                toast({
+                                  title: "다운로드 완료",
+                                  description: `${downloadFilename}이 다운로드되었습니다.`,
+                                });
+                              } catch (error) {
+                                console.error('다운로드 실패:', error);
+                                toast({
+                                  title: "다운로드 실패",
+                                  description: "이미지 다운로드 중 오류가 발생했습니다.",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                            disabled={!image.s3_paths?.sr_h}
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            워터마크
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
@@ -442,6 +474,195 @@ export default function MyImagesPage() {
           </div>
         </div>
       </main>
+
+      {/* 이미지 상세 모달 */}
+      {isModalOpen && selectedImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] w-full overflow-auto">
+            <div className="p-6">
+              {/* 모달 헤더 */}
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">이미지 상세 보기</h2>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={closeImageModal}
+                  className="p-2"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* 이미지들 */}
+                <div className="space-y-4">
+                  {/* 원본 이미지 */}
+                  {selectedImage.s3_paths?.gt && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2 flex items-center">
+                        <Eye className="w-5 h-5 mr-2" />
+                        원본 이미지
+                      </h3>
+                      <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                        <img
+                          src={getImageUrl(selectedImage.s3_paths.gt)}
+                          alt={`${selectedImage.filename} - 원본`}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 워터마크 이미지 */}
+                  {selectedImage.s3_paths?.sr_h && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2 flex items-center">
+                        <Shield className="w-5 h-5 mr-2" />
+                        워터마크 이미지
+                      </h3>
+                      <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                        <img
+                          src={getImageUrl(selectedImage.s3_paths.sr_h)}
+                          alt={`${selectedImage.filename} - 워터마크`}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 이미지 정보 */}
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">이미지 정보</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">파일명</label>
+                        <p className="text-gray-900">{selectedImage.filename || '파일명 없음'}</p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">이미지 ID</label>
+                        <p className="text-gray-900">#{selectedImage.image_id}</p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">업로드 날짜</label>
+                        <p className="text-gray-900">{new Date(selectedImage.upload_time).toLocaleString('ko-KR')}</p>
+                      </div>
+
+                      {selectedImage.protection_algorithm && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">보호 알고리즘</label>
+                          <p className="text-purple-600 font-medium">{selectedImage.protection_algorithm}</p>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">저작권 정보</label>
+                        <p className="text-blue-600">{selectedImage.copyright || "저작권 정보가 설정되지 않았습니다"}</p>
+                      </div>
+
+                      <div className="flex items-center space-x-2 pt-2">
+                        <Badge className="bg-green-100 text-green-800">
+                          <Shield className="w-3 h-3 mr-1" />
+                          보호됨
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 다운로드 버튼들 */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">다운로드</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <Button 
+                        variant="outline" 
+                        className="bg-transparent"
+                        onClick={async () => {
+                          const baseName = selectedImage.filename.replace(/\.[^/.]+$/, "");
+                          const downloadFilename = `${baseName}_origi.png`;
+                          
+                          try {
+                            const response = await fetch(selectedImage.s3_paths?.gt || '');
+                            const blob = await response.blob();
+                            const url = window.URL.createObjectURL(blob);
+                            
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = downloadFilename;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            
+                            window.URL.revokeObjectURL(url);
+                            
+                            toast({
+                              title: "다운로드 완료",
+                              description: `${downloadFilename}이 다운로드되었습니다.`,
+                            });
+                          } catch (error) {
+                            console.error('다운로드 실패:', error);
+                            toast({
+                              title: "다운로드 실패",
+                              description: "이미지 다운로드 중 오류가 발생했습니다.",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                        disabled={!selectedImage.s3_paths?.gt}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        원본 이미지
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        className="bg-transparent"
+                        onClick={async () => {
+                          const baseName = selectedImage.filename.replace(/\.[^/.]+$/, "");
+                          const downloadFilename = `${baseName}_wm.png`;
+                          
+                          try {
+                            const response = await fetch(selectedImage.s3_paths?.sr_h || '');
+                            const blob = await response.blob();
+                            const url = window.URL.createObjectURL(blob);
+                            
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = downloadFilename;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            
+                            window.URL.revokeObjectURL(url);
+                            
+                            toast({
+                              title: "다운로드 완료",
+                              description: `${downloadFilename}이 다운로드되었습니다.`,
+                            });
+                          } catch (error) {
+                            console.error('다운로드 실패:', error);
+                            toast({
+                              title: "다운로드 실패",
+                              description: "이미지 다운로드 중 오류가 발생했습니다.",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                        disabled={!selectedImage.s3_paths?.sr_h}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        워터마크 이미지
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

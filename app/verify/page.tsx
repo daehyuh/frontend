@@ -11,12 +11,12 @@ import { useToast } from "@/components/ui/use-toast"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import FileUpload from "@/components/file-upload"
-import { apiClient } from "@/lib/api"
+import { apiClient, type AlgorithmsResponse, type AlgorithmInfo } from "@/lib/api"
 
 export default function VerifyPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [algorithms, setAlgorithms] = useState<string[]>([])
+  const [algorithms, setAlgorithms] = useState<AlgorithmsResponse>({})
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>("")
   const router = useRouter()
   const { toast } = useToast()
@@ -37,18 +37,21 @@ export default function VerifyPage() {
           })
           router.push("/login?redirect=/verify")
         } else {
-          // 보호 알고리즘 목록 가져오기 (검증에서도 동일한 알고리즘 사용)
+          // 알고리즘 목록 가져오기 (검증에서도 동일한 알고리즘 사용)
           try {
-            const algorithmsList = await apiClient.getProtectionAlgorithms()
-            setAlgorithms(algorithmsList)
-            if (algorithmsList.length > 0) {
-              setSelectedAlgorithm(algorithmsList[0]) // 첫 번째 알고리즘을 기본 선택
+            const algorithmsData = await apiClient.getAlgorithms()
+            setAlgorithms(algorithmsData)
+            const algorithmNames = Object.keys(algorithmsData)
+            if (algorithmNames.length > 0) {
+              setSelectedAlgorithm(algorithmNames[0]) // 첫 번째 알고리즘을 기본 선택
             }
           } catch (error) {
             console.error('Failed to load algorithms:', error)
-            // 기본 알고리즘 설정
-            setAlgorithms(['EditGuard','RobustWide'])
-            setSelectedAlgorithm('EditGuard')
+            toast({
+              title: "알고리즘 로드 실패",
+              description: "알고리즘 목록을 가져오는데 실패했습니다. 페이지를 새로고침해주세요.",
+              variant: "destructive",
+            })
           }
         }
       } catch (error) {
@@ -198,30 +201,47 @@ export default function VerifyPage() {
                 description="지원 형식: PNG (최대 10MB)"
               />
 
-              {/* 알고리즘 선택 토글바 */}
-              <div className="space-y-3">
+              {/* 알고리즘 선택 */}
+              <div className="space-y-4">
                 <Label>검증 알고리즘 선택</Label>
-                <div className="flex flex-wrap gap-2 p-1 bg-gray-100 rounded-lg">
-                  {algorithms.map((algorithm) => (
-                    <Button
-                      key={algorithm}
-                      type="button"
-                      onClick={() => setSelectedAlgorithm(algorithm)}
-                      className={`flex-1 min-w-[100px] px-4 py-2 rounded-md font-medium transition-all duration-200
-                        ${
-                          selectedAlgorithm === algorithm
-                            ? 'bg-primary text-white shadow-sm'
-                            : 'bg-transparent text-gray-600 hover:bg-white hover:text-primary hover:shadow-sm'
-                        }
-                      `}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {Object.entries(algorithms).map(([key, algorithm]) => (
+                    <div
+                      key={key}
+                      className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
+                        selectedAlgorithm === key
+                          ? 'border-primary bg-primary/5 shadow-md'
+                          : 'border-gray-200 hover:border-primary/50 hover:shadow-sm'
+                      }`}
+                      onClick={() => setSelectedAlgorithm(key)}
                     >
-                      {algorithm}
-                    </Button>
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className={`font-semibold ${
+                          selectedAlgorithm === key ? 'text-primary' : 'text-gray-900'
+                        }`}>
+                          {algorithm.name}
+                        </h3>
+                        <div className={`w-4 h-4 rounded-full border-2 ${
+                          selectedAlgorithm === key
+                            ? 'border-primary bg-primary'
+                            : 'border-gray-300'
+                        }`}>
+                          {selectedAlgorithm === key && (
+                            <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
+                          )}
+                        </div>
+                      </div>
+                      <p className={`text-sm font-medium mb-2 ${
+                        selectedAlgorithm === key ? 'text-primary' : 'text-gray-700'
+                      }`}>
+                        {algorithm.title}
+                      </p>
+                      <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-line">
+                        {algorithm.description}
+                      </p>
+                    </div>
                   ))}
                 </div>
-                <p className="text-sm text-gray-500">
-                  선택한 알고리즘: <span className="font-medium text-primary">{selectedAlgorithm}</span>
-                </p>
               </div>
 
               <Button onClick={handleVerify} disabled={!selectedFile || isProcessing} className="w-full" size="lg">

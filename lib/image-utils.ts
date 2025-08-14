@@ -19,43 +19,32 @@ export function getImageUrl(imagePath: string | undefined): string {
 }
 
 /**
- * 이미지 다운로드 (S3 URL 지원)
+ * 이미지 다운로드 (강제 다운로드 방식)
  */
 export async function downloadImage(imagePath: string, filename: string): Promise<void> {
+  console.log('=== 이미지 다운로드 시작 ===');
+  console.log('다운로드할 경로:', imagePath);
+  console.log('저장될 파일명:', filename);
+  
   try {
-    // S3 URL인 경우 직접 다운로드 링크 생성
-    if (imagePath.startsWith('https://') || imagePath.startsWith('http://')) {
-      const link = document.createElement('a');
-      link.href = imagePath;
-      link.download = filename;
-      link.target = '_blank'; // 새 탭에서 열기
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      return;
-    }
-
-    // 백엔드 API 이미지인 경우 기존 로직 사용
-    const imageUrl = getImageUrl(imagePath);
-    const response = await fetch(imageUrl);
-    
-    if (!response.ok) {
-      throw new Error('다운로드 실패');
-    }
-    
-    const blob = await response.blob();
-    const downloadUrl = window.URL.createObjectURL(blob);
-    
+    // 모든 URL에 대해 강제 다운로드 링크 생성
     const link = document.createElement('a');
-    link.href = downloadUrl;
+    link.href = imagePath;
     link.download = filename;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    
+    // 임시로 DOM에 추가하고 클릭
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     
-    window.URL.revokeObjectURL(downloadUrl);
+    console.log('강제 다운로드 완료');
   } catch (error) {
-    console.error('이미지 다운로드 실패:', error);
+    console.error('=== 이미지 다운로드 실패 ===');
+    console.error('오류 상세:', error);
+    console.error('경로:', imagePath);
+    console.error('파일명:', filename);
     throw error;
   }
 }

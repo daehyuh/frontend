@@ -57,6 +57,16 @@ interface ValidationRecordDetail {
   };
 }
 
+interface AlgorithmInfo {
+  name: string;
+  title: string;
+  description: string;
+}
+
+interface AlgorithmsResponse {
+  [key: string]: AlgorithmInfo;
+}
+
 interface ImageDetailResponse {
   id: number;
   user_id: number;
@@ -303,34 +313,28 @@ class ApiClient {
     throw new Error('사용자 정보를 찾을 수 없습니다.');
   }
 
-  // 보호 알고리즘 목록 조회
-  async getProtectionAlgorithms(): Promise<string[]> {
-    try {
-      const response = await this.request<ApiResponse<any[]>>('/protection-algorithms', {
-        method: 'GET',
-      });
+  // 알고리즘 목록 조회
+  async getAlgorithms(): Promise<AlgorithmsResponse> {
+    const response = await this.request<ApiResponse<AlgorithmsResponse[]>>('/algorithms', {
+      method: 'GET',
+    });
 
-      // 데이터가 있으면 반환
-      if (response.data && response.data.length > 0) {
-        // 응답이 객체 배열인 경우 (예: [{value: "EditGuard", name: "EditGuard"}, ...])
-        if (typeof response.data[0] === 'object' && response.data[0].value) {
-          return response.data.map((item: any) => item.value);
-        }
-        // 응답이 객체 배열이지만 name 속성만 있는 경우
-        else if (typeof response.data[0] === 'object' && response.data[0].name) {
-          return response.data.map((item: any) => item.name);
-        }
-        // 응답이 문자열 배열인 경우
-        else if (typeof response.data[0] === 'string') {
-          return response.data;
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch protection algorithms:', error);
+    if (response.data && response.data.length > 0) {
+      return response.data[0];
     }
 
-    // 기본 알고리즘 목록 (fallback)
-    return ['EditGuard', 'RobustWide'];
+    throw new Error('알고리즘 목록을 가져올 수 없습니다.');
+  }
+
+  // 보호 알고리즘 목록 조회 (기존 호환성)
+  async getProtectionAlgorithms(): Promise<string[]> {
+    try {
+      const algorithms = await this.getAlgorithms();
+      return Object.keys(algorithms);
+    } catch (error) {
+      console.error('Failed to fetch protection algorithms:', error);
+      return ['EditGuard', 'RobustWide'];
+    }
   }
 
   // 이미지 업로드 (보호 알고리즘 선택 추가)
@@ -506,4 +510,4 @@ class ApiClient {
 }
 
 export const apiClient = ApiClient.getInstance();
-export type { LoginResponse, UserResponse, ImageUploadResponse, ValidateResponse, ImageDetailResponse, ValidationRecordDetail };
+export type { LoginResponse, UserResponse, ImageUploadResponse, ValidateResponse, ImageDetailResponse, ValidationRecordDetail, AlgorithmInfo, AlgorithmsResponse };

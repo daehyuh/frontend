@@ -128,8 +128,8 @@ export default function ResultContent({ validationId }: ResultContentProps) {
                 <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-red-500" />
                 <h3 className="text-lg font-semibold mb-2">검증 기록을 찾을 수 없습니다</h3>
                 <p className="text-gray-600 mb-4">요청하신 검증 기록이 존재하지 않거나 접근 권한이 없습니다.</p>
-                <Button onClick={() => router.push('/history')}>
-                  검증 기록으로 돌아가기
+                <Button onClick={() => router.push('/dashboard')}>
+                  대시보드로 돌아가기
                 </Button>
               </CardContent>
             </Card>

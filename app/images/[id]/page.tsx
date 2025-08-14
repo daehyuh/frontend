@@ -53,6 +53,44 @@ export default function ImageDetailPage() {
     }
   };
 
+  const handleDownloadOriginal = async (url: string, originalFilename: string) => {
+    try {
+      const baseName = originalFilename.replace(/\.[^/.]+$/, ""); // 확장자 제거
+      const downloadFilename = `${baseName}_origi.png`;
+      await downloadImage(url, downloadFilename);
+      toast({
+        title: "성공",
+        description: "원본 이미지가 다운로드되었습니다.",
+      });
+    } catch (error) {
+      console.error('원본 다운로드 실패:', error);
+      toast({
+        title: "오류",
+        description: "원본 이미지 다운로드에 실패했습니다.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadWatermark = async (url: string, originalFilename: string) => {
+    try {
+      const baseName = originalFilename.replace(/\.[^/.]+$/, ""); // 확장자 제거
+      const downloadFilename = `${baseName}_wm.png`;
+      await downloadImage(url, downloadFilename);
+      toast({
+        title: "성공",
+        description: "워터마크 이미지가 다운로드되었습니다.",
+      });
+    } catch (error) {
+      console.error('워터마크 다운로드 실패:', error);
+      toast({
+        title: "오류",
+        description: "워터마크 이미지 다운로드에 실패했습니다.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDownload = async (url: string, filename: string) => {
     try {
       await downloadImage(url, filename);
@@ -142,7 +180,7 @@ export default function ImageDetailPage() {
                       />
                       <div className="absolute top-2 right-2">
                         <button
-                          onClick={() => handleDownload(imageDetail.s3_paths.gt, `gt_${imageDetail.filename}`)}
+                          onClick={() => handleDownloadOriginal(imageDetail.s3_paths.gt, imageDetail.filename)}
                           className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-lg transition-colors"
                           title="GT 이미지 다운로드"
                         >
@@ -159,7 +197,7 @@ export default function ImageDetailPage() {
                   )}
                 </div>
                 <button
-                  onClick={() => handleDownload(imageDetail.s3_paths.gt, `gt_${imageDetail.filename}`)}
+                  onClick={() => handleDownloadOriginal(imageDetail.s3_paths.gt, imageDetail.filename)}
                   className="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
                   disabled={!imageDetail.s3_paths.gt}
                 >
@@ -185,7 +223,7 @@ export default function ImageDetailPage() {
                       />
                       <div className="absolute top-2 right-2">
                         <button
-                          onClick={() => handleDownload(imageDetail.s3_paths.sr_h, `sr_h_${imageDetail.filename}`)}
+                          onClick={() => handleDownloadWatermark(imageDetail.s3_paths.sr_h, imageDetail.filename)}
                           className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-lg transition-colors"
                           title="SR_H 이미지 다운로드"
                         >
@@ -202,7 +240,7 @@ export default function ImageDetailPage() {
                   )}
                 </div>
                 <button
-                  onClick={() => handleDownload(imageDetail.s3_paths.sr_h, `sr_h_${imageDetail.filename}`)}
+                  onClick={() => handleDownloadWatermark(imageDetail.s3_paths.sr_h, imageDetail.filename)}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
                   disabled={!imageDetail.s3_paths.sr_h}
                 >

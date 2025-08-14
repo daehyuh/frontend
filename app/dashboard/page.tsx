@@ -7,7 +7,7 @@ import Footer from "@/components/footer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { BarChart3, Shield, Search, Calendar, Eye, History, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-react"
+import { BarChart3, Shield, Search, Calendar, Eye, History, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckCircle } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api"
 
@@ -309,37 +309,71 @@ export default function DashboardPage() {
                   <>
                     <div className="space-y-4">
                       {getCurrentPageValidations().map((validation) => (
-                        <div key={validation.record_id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors space-y-3 sm:space-y-0">
-                          <div className="flex items-center space-x-3 min-w-0 flex-1">
-                            <div className="min-w-0 flex-1">
-                              <p className="font-medium truncate">{validation.input_filename || '파일명 없음'}</p>
-                              <div className="flex items-center text-xs sm:text-sm text-gray-600 mt-1">
-                                <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
-                                <span className="truncate">{formatDate(validation.validation_time)}</span>
+                        <Card key={validation.record_id} className="hover:shadow-lg transition-shadow">
+                          <CardContent className="p-6">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                              <div className="flex items-center space-x-4">
+                                {/* Upload Image Placeholder */}
+                                <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                  {validation.s3_validation_image_url ? (
+                                    <img
+                                      src={validation.s3_validation_image_url}
+                                      alt={validation.input_filename}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <Search className="w-8 h-8 text-gray-400" />
+                                  )}
+                                </div>
+                                
+                                <div className="flex-1 space-y-2 min-w-0">
+                                  <div className="flex items-center space-x-3">
+                                    <h3 className="font-semibold text-lg text-gray-900 truncate">
+                                      {validation.input_filename || '파일명 없음'}
+                                    </h3>
+                                    <Badge variant={(validation.modification_rate && validation.modification_rate > 1) ? "destructive" : "default"}>
+                                      {(validation.modification_rate && validation.modification_rate > 1) ? "변조 탐지" : "원본 확인"}
+                                    </Badge>
+                                  </div>
+                                  
+                                  <div className="flex items-center text-sm text-gray-500 space-x-4">
+                                    <div className="flex items-center">
+                                      <Calendar className="w-4 h-4 mr-1" />
+                                      {formatDate(validation.validation_time)}
+                                    </div>
+                                    <div className="flex items-center">
+                                      <span className="mr-1">변조률:</span>
+                                      <span className="font-medium text-blue-600">
+                                        {validation.modification_rate ? `${validation.modification_rate.toFixed(2)}%` : '0%'}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center">
+                                      <span className="mr-1">알고리즘:</span>
+                                      <span className="font-medium text-blue-600">
+                                        {validation.validation_algorithm}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <div className="text-xs text-gray-400">
+                                    UUID: {validation.validation_id}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center space-x-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => router.push(`/result/${validation.validation_id}`)}
+                                >
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  결과 보기
+                                </Button>
                               </div>
                             </div>
-                          </div>
-                          <div className="flex items-center justify-between sm:justify-end sm:flex-col sm:items-end space-x-3 sm:space-x-0 sm:space-y-2">
-                            <div className="flex items-center space-x-2 sm:flex-col sm:items-end sm:space-x-0 sm:space-y-1">
-                              <Badge variant={(validation.modification_rate && validation.modification_rate > 1) ? "destructive" : "default"} className="text-xs">
-                                {(validation.modification_rate && validation.modification_rate > 1) ? "변조 탐지" : "원본 확인"}
-                              </Badge>
-                              <div className="text-xs sm:text-sm text-gray-600 text-right">
-                                <p>변조률: {validation.modification_rate ? `${validation.modification_rate.toFixed(2)}%` : '0%'}</p>
-                                <p>알고리즘: <span className="text-blue-600 font-medium">{validation.validation_algorithm}</span></p>
-                              </div>
-                            </div>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => router.push(`/result/${validation.validation_id}`)}
-                              className="flex-shrink-0"
-                            >
-                              <Eye className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                              <span className="hidden sm:inline">상세</span>
-                            </Button>
-                          </div>
-                        </div>
+                          </CardContent>
+                        </Card>
                       ))}
                     </div>
 
