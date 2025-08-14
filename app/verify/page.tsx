@@ -47,7 +47,7 @@ export default function VerifyPage() {
           } catch (error) {
             console.error('Failed to load algorithms:', error)
             // 기본 알고리즘 설정
-            setAlgorithms(['EditGuard', 'OmniGuard', 'RobustWide'])
+            setAlgorithms(['EditGuard','RobustWide'])
             setSelectedAlgorithm('EditGuard')
           }
         }

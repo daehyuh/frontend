@@ -330,7 +330,7 @@ class ApiClient {
     }
 
     // 기본 알고리즘 목록 (fallback)
-    return ['EditGuard', 'OmniGuard', 'RobustWide'];
+    return ['EditGuard', 'RobustWide'];
   }
 
   // 이미지 업로드 (보호 알고리즘 선택 추가)

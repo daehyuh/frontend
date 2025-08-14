@@ -129,18 +129,39 @@ export default function MyImagesPage() {
   }
 
 
-  const handleDownloadDirect = async (url: string, filename: string) => {
+  const handleDownloadOriginal = async (url: string, originalFilename: string) => {
     try {
-      await downloadImage(url, filename);
+      const baseName = originalFilename.replace(/\.[^/.]+$/, ""); // 확장자 제거
+      const downloadFilename = `${baseName}_orig.png`;
+      await downloadImage(url, downloadFilename);
       toast({
         title: "성공",
-        description: "이미지가 다운로드되었습니다.",
+        description: "원본 이미지가 다운로드되었습니다.",
       });
     } catch (error) {
-      console.error('다운로드 실패:', error);
+      console.error('원본 다운로드 실패:', error);
       toast({
         title: "오류",
-        description: "이미지 다운로드에 실패했습니다.",
+        description: "원본 이미지 다운로드에 실패했습니다.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadWatermark = async (url: string, originalFilename: string) => {
+    try {
+      const baseName = originalFilename.replace(/\.[^/.]+$/, ""); // 확장자 제거
+      const downloadFilename = `${baseName}_wm.png`;
+      await downloadImage(url, downloadFilename);
+      toast({
+        title: "성공",
+        description: "워터마크 이미지가 다운로드되었습니다.",
+      });
+    } catch (error) {
+      console.error('워터마크 다운로드 실패:', error);
+      toast({
+        title: "오류",
+        description: "워터마크 이미지 다운로드에 실패했습니다.",
         variant: "destructive",
       });
     }
@@ -287,7 +308,7 @@ export default function MyImagesPage() {
                               variant="outline" 
                               size="sm" 
                               className="bg-transparent"
-                              onClick={() => handleDownloadDirect(image.s3_paths?.gt || '', `gt_${image.filename}`)}
+                              onClick={() => handleDownloadOriginal(image.s3_paths?.gt || '', image.filename)}
                               disabled={!image.s3_paths?.gt}
                             >
                               <Download className="h-4 w-4 mr-1" />
@@ -297,7 +318,7 @@ export default function MyImagesPage() {
                               variant="outline" 
                               size="sm" 
                               className="bg-transparent"
-                              onClick={() => handleDownloadDirect(image.s3_paths?.sr_h || '', `sr_h_${image.filename}`)}
+                              onClick={() => handleDownloadWatermark(image.s3_paths?.sr_h || '', image.filename)}
                               disabled={!image.s3_paths?.sr_h}
                             >
                               <Download className="h-4 w-4 mr-1" />
