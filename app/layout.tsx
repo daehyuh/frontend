@@ -18,19 +18,30 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/favicon.ico' },
-      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: 'https://aegis.gdgoc.com/favicon.ico', sizes: 'any' },
+      { url: 'https://aegis.gdgoc.com/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: 'https://aegis.gdgoc.com/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
     ],
+    shortcut: '/favicon.ico',
     apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: 'https://aegis.gdgoc.com/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
     other: [
-      { url: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
+      { 
+        url: 'https://aegis.gdgoc.com/android-chrome-192x192.png', 
+        sizes: '192x192', 
+        type: 'image/png',
+        rel: 'icon',
+      },
+      { 
+        url: 'https://aegis.gdgoc.com/android-chrome-512x512.png', 
+        sizes: '512x512', 
+        type: 'image/png',
+        rel: 'icon',
+      },
     ],
   },
-  manifest: '/site.webmanifest',
+  manifest: 'https://aegis.gdgoc.com/site.webmanifest',
   openGraph: {
     title: 'AEGIS - AI 편집도 속일 수 없는 워터마크 기술',
     description: '딥러닝 기반 보이지 않는 표식이 원본의 소유권을 지켜주고, 조작의 흔적은 눈에 보이는 증거로 드러냅니다.',
