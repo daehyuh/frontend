@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Play, Pause, RotateCcw, Eye, EyeOff, AlertTriangle } from "lucide-react"
+import { Eye, EyeOff, AlertTriangle } from "lucide-react"
 
 interface MaskOverlaySliderProps {
   originalImageUrl: string
@@ -14,19 +14,17 @@ interface MaskOverlaySliderProps {
   filename: string
 }
 
-export default function MaskOverlaySlider({
+const MaskOverlaySlider = forwardRef<any, MaskOverlaySliderProps>(({
   originalImageUrl,
   maskImageUrl,
   modificationRate,
   filename
-}: MaskOverlaySliderProps) {
+}, ref) => {
   const [opacity, setOpacity] = useState([50])
-  const [isPlaying, setIsPlaying] = useState(false)
   const [showMaskOnly, setShowMaskOnly] = useState(false)
   const [imagesLoaded, setImagesLoaded] = useState(false)
   const [imageError, setImageError] = useState<string | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const animationRef = useRef<number>()
   
   // 이미지 요소들
   const [originalImg, setOriginalImg] = useState<HTMLImageElement | null>(null)
@@ -135,36 +133,6 @@ export default function MaskOverlaySlider({
     }
   }, [opacity, originalImg, maskImg, imagesLoaded, showMaskOnly])
 
-  // 자동 재생 애니메이션
-  useEffect(() => {
-    if (!isPlaying) return
-
-    const animate = () => {
-      setOpacity(([current]) => {
-        const next = current >= 100 ? 0 : current + 1.5
-        return [next]
-      })
-      animationRef.current = requestAnimationFrame(animate)
-    }
-
-    animationRef.current = requestAnimationFrame(animate)
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-      }
-    }
-  }, [isPlaying])
-
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying)
-  }
-
-  const handleReset = () => {
-    setIsPlaying(false)
-    setOpacity([0])
-  }
-
   const toggleMaskView = () => {
     setShowMaskOnly(!showMaskOnly)
   }
@@ -263,41 +231,11 @@ export default function MaskOverlaySlider({
               max={100}
               step={1}
               className="w-full"
-              disabled={isPlaying}
             />
           </div>
 
           {/* 컨트롤 버튼 */}
           <div className="flex flex-wrap items-center justify-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePlayPause}
-              className="flex items-center space-x-2"
-            >
-              {isPlaying ? (
-                <>
-                  <Pause className="w-4 h-4" />
-                  <span>일시정지</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4" />
-                  <span>자동 재생</span>
-                </>
-              )}
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleReset}
-              className="flex items-center space-x-2"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>초기화</span>
-            </Button>
-
             <Button
               variant="outline"
               size="sm"
@@ -322,10 +260,13 @@ export default function MaskOverlaySlider({
           <div className="text-xs text-gray-500 text-center space-y-1 pt-2 border-t">
             <p>• 슬라이더를 조작하여 변조된 영역을 확인하세요</p>
             <p>• 빨간색 영역이 AI가 탐지한 변조 부분입니다</p>
-            <p>• 자동 재생으로 변조 영역을 애니메이션으로 확인할 수 있습니다</p>
           </div>
         </div>
       </CardContent>
     </Card>
   )
-}
+})
+
+MaskOverlaySlider.displayName = "MaskOverlaySlider"
+
+export default MaskOverlaySlider

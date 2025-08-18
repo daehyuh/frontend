@@ -1,11 +1,29 @@
 // 백엔드 이미지 URL 처리 유틸리티
 
 /**
- * 백엔드에서 직접 이미지를 서빙하는 URL 생성
+ * 이미지 URL 생성 - S3 Bucket이 공개되어 있으므로 직접 접근
  */
 export function getImageUrl(imagePath: string | undefined): string {
   if (!imagePath) {
     return '/placeholder.png';
+  }
+
+  // 이미 완전한 URL인 경우 그대로 반환 (S3 URL)
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+
+  // 백엔드 API를 통해 이미지 서빙
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+  return `${API_BASE_URL}/images/${imagePath}`;
+}
+
+/**
+ * 직접 S3 URL 반환 (다운로드용)
+ */
+export function getDirectImageUrl(imagePath: string | undefined): string {
+  if (!imagePath) {
+    return '';
   }
 
   // 이미 완전한 URL인 경우 그대로 반환

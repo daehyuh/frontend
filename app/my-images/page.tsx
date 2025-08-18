@@ -13,7 +13,7 @@ import Header from "@/components/header"
 import Footer from "@/components/footer"
 import { usePagination } from "@/hooks/usePagination"
 import { apiClient } from "@/lib/api"
-import { getImageUrl, downloadImage } from "@/lib/image-utils"
+import { getImageUrl, getDirectImageUrl, downloadImage } from "@/lib/image-utils"
 
 interface ImageRecord {
   image_id: number
@@ -281,25 +281,32 @@ export default function MyImagesPage() {
                               e.stopPropagation(); // 카드 클릭 이벤트 전파 방지
                               const baseName = image.filename.replace(/\.[^/.]+$/, "");
                               const downloadFilename = `${baseName}_origi.png`;
-                              console.log('다운로드 시도:', image.s3_paths?.gt, downloadFilename);
+                              
+                              if (!image.s3_paths?.gt) {
+                                toast({
+                                  title: "다운로드 실패",
+                                  description: "원본 이미지 URL이 없습니다.",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
                               
                               try {
-                                const response = await fetch(image.s3_paths?.gt || '');
-                                const blob = await response.blob();
-                                const url = window.URL.createObjectURL(blob);
-                                
+                                // CORS 우회를 위해 새 창에서 다운로드 시도
                                 const link = document.createElement('a');
-                                link.href = url;
+                                link.href = getDirectImageUrl(image.s3_paths.gt);
                                 link.download = downloadFilename;
+                                link.target = '_blank';
+                                link.rel = 'noopener noreferrer';
+                                
+                                // 사용자 제스처 컨텍스트에서 실행되도록 즉시 클릭
                                 document.body.appendChild(link);
                                 link.click();
                                 document.body.removeChild(link);
                                 
-                                window.URL.revokeObjectURL(url);
-                                
                                 toast({
-                                  title: "다운로드 완료",
-                                  description: `${downloadFilename}이 다운로드되었습니다.`,
+                                  title: "다운로드 시작",
+                                  description: `${downloadFilename} 다운로드가 시작되었습니다.`,
                                 });
                               } catch (error) {
                                 console.error('다운로드 실패:', error);
@@ -323,25 +330,32 @@ export default function MyImagesPage() {
                               e.stopPropagation(); // 카드 클릭 이벤트 전파 방지
                               const baseName = image.filename.replace(/\.[^/.]+$/, "");
                               const downloadFilename = `${baseName}_wm.png`;
-                              console.log('다운로드 시도:', image.s3_paths?.sr_h, downloadFilename);
+                              
+                              if (!image.s3_paths?.sr_h) {
+                                toast({
+                                  title: "다운로드 실패",
+                                  description: "워터마크 이미지 URL이 없습니다.",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
                               
                               try {
-                                const response = await fetch(image.s3_paths?.sr_h || '');
-                                const blob = await response.blob();
-                                const url = window.URL.createObjectURL(blob);
-                                
+                                // CORS 우회를 위해 새 창에서 다운로드 시도
                                 const link = document.createElement('a');
-                                link.href = url;
+                                link.href = getDirectImageUrl(image.s3_paths.sr_h);
                                 link.download = downloadFilename;
+                                link.target = '_blank';
+                                link.rel = 'noopener noreferrer';
+                                
+                                // 사용자 제스처 컨텍스트에서 실행되도록 즉시 클릭
                                 document.body.appendChild(link);
                                 link.click();
                                 document.body.removeChild(link);
                                 
-                                window.URL.revokeObjectURL(url);
-                                
                                 toast({
-                                  title: "다운로드 완료",
-                                  description: `${downloadFilename}이 다운로드되었습니다.`,
+                                  title: "다운로드 시작",
+                                  description: `${downloadFilename} 다운로드가 시작되었습니다.`,
                                 });
                               } catch (error) {
                                 console.error('다운로드 실패:', error);
@@ -583,23 +597,31 @@ export default function MyImagesPage() {
                           const baseName = selectedImage.filename.replace(/\.[^/.]+$/, "");
                           const downloadFilename = `${baseName}_origi.png`;
                           
+                          if (!selectedImage.s3_paths?.gt) {
+                            toast({
+                              title: "다운로드 실패",
+                              description: "원본 이미지 URL이 없습니다.",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          
                           try {
-                            const response = await fetch(selectedImage.s3_paths?.gt || '');
-                            const blob = await response.blob();
-                            const url = window.URL.createObjectURL(blob);
-                            
+                            // CORS 우회를 위해 새 창에서 다운로드 시도
                             const link = document.createElement('a');
-                            link.href = url;
+                            link.href = selectedImage.s3_paths.gt;
                             link.download = downloadFilename;
+                            link.target = '_blank';
+                            link.rel = 'noopener noreferrer';
+                            
+                            // 사용자 제스처 컨텍스트에서 실행되도록 즉시 클릭
                             document.body.appendChild(link);
                             link.click();
                             document.body.removeChild(link);
                             
-                            window.URL.revokeObjectURL(url);
-                            
                             toast({
-                              title: "다운로드 완료",
-                              description: `${downloadFilename}이 다운로드되었습니다.`,
+                              title: "다운로드 시작",
+                              description: `${downloadFilename} 다운로드가 시작되었습니다.`,
                             });
                           } catch (error) {
                             console.error('다운로드 실패:', error);
@@ -623,23 +645,31 @@ export default function MyImagesPage() {
                           const baseName = selectedImage.filename.replace(/\.[^/.]+$/, "");
                           const downloadFilename = `${baseName}_wm.png`;
                           
+                          if (!selectedImage.s3_paths?.sr_h) {
+                            toast({
+                              title: "다운로드 실패",
+                              description: "워터마크 이미지 URL이 없습니다.",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          
                           try {
-                            const response = await fetch(selectedImage.s3_paths?.sr_h || '');
-                            const blob = await response.blob();
-                            const url = window.URL.createObjectURL(blob);
-                            
+                            // CORS 우회를 위해 새 창에서 다운로드 시도
                             const link = document.createElement('a');
-                            link.href = url;
+                            link.href = selectedImage.s3_paths.sr_h;
                             link.download = downloadFilename;
+                            link.target = '_blank';
+                            link.rel = 'noopener noreferrer';
+                            
+                            // 사용자 제스처 컨텍스트에서 실행되도록 즉시 클릭
                             document.body.appendChild(link);
                             link.click();
                             document.body.removeChild(link);
                             
-                            window.URL.revokeObjectURL(url);
-                            
                             toast({
-                              title: "다운로드 완료",
-                              description: `${downloadFilename}이 다운로드되었습니다.`,
+                              title: "다운로드 시작",
+                              description: `${downloadFilename} 다운로드가 시작되었습니다.`,
                             });
                           } catch (error) {
                             console.error('다운로드 실패:', error);
