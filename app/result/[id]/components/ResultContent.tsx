@@ -314,6 +314,55 @@ export default function ResultContent({ validationId }: ResultContentProps) {
                 </CardContent>
               </Card>
 
+              {/* Original Copyright Information */}
+              {validationRecord.original_copyright && (
+                <Card className="mb-8">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <CheckCircle className="mr-2 h-5 w-5 text-blue-500" />
+                      원본 저작권 정보
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">원본 파일명</p>
+                          <p className="font-semibold text-gray-900">{validationRecord.original_copyright.filename}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">업로드 시간</p>
+                          <p className="font-semibold text-gray-900">
+                            {new Date(validationRecord.original_copyright.upload_time).toLocaleString('ko-KR')}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">저작권 정보</p>
+                          <p className="font-semibold text-gray-900">{validationRecord.original_copyright.copyright}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">보호 알고리즘</p>
+                          <p className="font-semibold text-blue-600">{validationRecord.original_copyright.protection_algorithm}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">원본 소유자</p>
+                          <p className="font-semibold text-gray-900">{validationRecord.original_copyright.owner_name}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">소유자 이메일</p>
+                          <p className="font-semibold text-gray-900">{validationRecord.original_copyright.owner_email}</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 p-3 bg-white border border-blue-300 rounded-md">
+                        <p className="text-sm text-blue-800">
+                          <strong>확인:</strong> 이 이미지는 위 저작권 정보에 따라 보호된 원본 이미지에서 생성된 것으로 확인되었습니다.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* User Report Information - Only show for detected tampering */}
               {isDetected && true ?    <Card className="mb-8">
                   <CardHeader>

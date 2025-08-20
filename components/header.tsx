@@ -169,6 +169,20 @@ export default function Header() {
             >
               내 이미지
             </Link>
+            <Link
+              href="/api/demo"
+              className={`transition-colors px-2 py-1 rounded-md ${
+                pathname === "/api/demo"
+                  ? shouldUseTransparentHeader
+                    ? "text-white font-bold underline underline-offset-4 decoration-white"
+                    : "text-primary font-bold underline underline-offset-4"
+                  : shouldUseTransparentHeader
+                  ? "text-white hover:text-gray-200"
+                  : "text-gray-700 hover:text-primary"
+              }`}
+            >
+              OPEN API
+            </Link>
           </nav>
 
           {/* Desktop Auth Buttons */}
@@ -261,6 +275,13 @@ export default function Header() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 내 이미지
+              </Link>
+              <Link
+                href="/api/demo"
+                className="text-gray-700 hover:text-primary transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                OPEN API
               </Link>
               <div className="flex flex-col space-y-2 pt-4 border-t">
                 {isAuthLoading ? (

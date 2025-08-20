@@ -204,43 +204,88 @@ export default function ProtectPage() {
               {/* 알고리즘 선택 */}
               <div className="space-y-4">
                 <Label>보호 알고리즘 선택</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {Object.entries(algorithms).map(([key, algorithm]) => (
-                    <div
-                      key={key}
-                      className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
-                        selectedAlgorithm === key
-                          ? 'border-primary bg-primary/5 shadow-md'
-                          : 'border-gray-200 hover:border-primary/50 hover:shadow-sm'
-                      }`}
-                      onClick={() => setSelectedAlgorithm(key)}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className={`font-semibold ${
-                          selectedAlgorithm === key ? 'text-primary' : 'text-gray-900'
-                        }`}>
-                          {algorithm.name}
-                        </h3>
-                        <div className={`w-4 h-4 rounded-full border-2 ${
+                <div className="space-y-4">
+                  {/* 짝수 개수의 알고리즘들을 2열로 배치 */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Object.entries(algorithms).slice(0, Math.floor(Object.keys(algorithms).length / 2) * 2).map(([key, algorithm]) => (
+                      <div
+                        key={key}
+                        className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
                           selectedAlgorithm === key
-                            ? 'border-primary bg-primary'
-                            : 'border-gray-300'
-                        }`}>
-                          {selectedAlgorithm === key && (
-                            <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
-                          )}
+                            ? 'border-primary bg-primary/5 shadow-md'
+                            : 'border-gray-200 hover:border-primary/50 hover:shadow-sm'
+                        }`}
+                        onClick={() => setSelectedAlgorithm(key)}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className={`font-semibold ${
+                            selectedAlgorithm === key ? 'text-primary' : 'text-gray-900'
+                          }`}>
+                            {algorithm.name}
+                          </h3>
+                          <div className={`w-4 h-4 rounded-full border-2 ${
+                            selectedAlgorithm === key
+                              ? 'border-primary bg-primary'
+                              : 'border-gray-300'
+                          }`}>
+                            {selectedAlgorithm === key && (
+                              <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
+                            )}
+                          </div>
                         </div>
+                        <p className={`text-sm font-medium mb-2 ${
+                          selectedAlgorithm === key ? 'text-primary' : 'text-gray-700'
+                        }`}>
+                          {algorithm.title}
+                        </p>
+                        <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-line">
+                          {algorithm.description}
+                        </p>
                       </div>
-                      <p className={`text-sm font-medium mb-2 ${
-                        selectedAlgorithm === key ? 'text-primary' : 'text-gray-700'
-                      }`}>
-                        {algorithm.title}
-                      </p>
-                      <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-line">
-                        {algorithm.description}
-                      </p>
+                    ))}
+                  </div>
+                  
+                  {/* 홀수 개수인 경우 마지막 알고리즘을 전체 너비로 배치 */}
+                  {Object.keys(algorithms).length % 2 === 1 && (
+                    <div className="w-full">
+                      {Object.entries(algorithms).slice(-1).map(([key, algorithm]) => (
+                        <div
+                          key={key}
+                          className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
+                            selectedAlgorithm === key
+                              ? 'border-primary bg-primary/5 shadow-md'
+                              : 'border-gray-200 hover:border-primary/50 hover:shadow-sm'
+                          }`}
+                          onClick={() => setSelectedAlgorithm(key)}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <h3 className={`font-semibold ${
+                              selectedAlgorithm === key ? 'text-primary' : 'text-gray-900'
+                            }`}>
+                              {algorithm.name}
+                            </h3>
+                            <div className={`w-4 h-4 rounded-full border-2 ${
+                              selectedAlgorithm === key
+                                ? 'border-primary bg-primary'
+                                : 'border-gray-300'
+                            }`}>
+                              {selectedAlgorithm === key && (
+                                <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
+                              )}
+                            </div>
+                          </div>
+                          <p className={`text-sm font-medium mb-2 ${
+                            selectedAlgorithm === key ? 'text-primary' : 'text-gray-700'
+                          }`}>
+                            {algorithm.title}
+                          </p>
+                          <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-line">
+                            {algorithm.description}
+                          </p>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
 

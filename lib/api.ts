@@ -22,6 +22,7 @@ interface UserResponse {
   name: string;
   email: string;
   time_created: string;
+  api_key?: string;
 }
 
 interface ImageUploadResponse {
@@ -34,7 +35,16 @@ interface ValidateResponse {
   validation_id: string;
   original_image_id: string;
   tampering_rate: number;
+  ai_tampering_rate?: number;
   tampered_regions_mask: string;
+  original_copyright?: {
+    copyright: string;
+    filename: string;
+    upload_time: string;
+    protection_algorithm: string;
+    owner_name: string;
+    owner_email: string;
+  };
 }
 
 interface ValidationRecordDetail {
@@ -56,6 +66,14 @@ interface ValidationRecordDetail {
     filename: string;
     copyright: string;
     upload_time: string;
+  };
+  original_copyright?: {
+    copyright: string;
+    filename: string;
+    upload_time: string;
+    protection_algorithm: string;
+    owner_name: string;
+    owner_email: string;
   };
 }
 
