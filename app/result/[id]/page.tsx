@@ -5,6 +5,9 @@ interface ResultPageProps {
   params: {
     id: string
   }
+  searchParams: {
+    showReport?: string
+  }
 }
 
 // 동적 메타데이터 생성
@@ -87,6 +90,7 @@ export async function generateMetadata({ params }: ResultPageProps): Promise<Met
   }
 }
 
-export default function ResultPage({ params }: ResultPageProps) {
-  return <ResultContent validationId={params.id} />
+export default function ResultPage({ params, searchParams }: ResultPageProps) {
+  const showReport = searchParams.showReport === 'true'
+  return <ResultContent validationId={params.id} autoOpenReport={showReport} />
 }

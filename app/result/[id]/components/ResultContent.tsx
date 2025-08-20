@@ -16,9 +16,10 @@ import type { ValidationRecordDetail } from "@/lib/api"
 
 interface ResultContentProps {
   validationId: string
+  autoOpenReport?: boolean
 }
 
-export default function ResultContent({ validationId }: ResultContentProps) {
+export default function ResultContent({ validationId, autoOpenReport = false }: ResultContentProps) {
   const [copySuccess, setCopySuccess] = useState(false)
   const [loading, setLoading] = useState(true)
   const [validationRecord, setValidationRecord] = useState<ValidationRecordDetail | null>(null)
@@ -79,6 +80,17 @@ export default function ResultContent({ validationId }: ResultContentProps) {
         }
 
         setValidationRecord(record)
+        
+        // 데이터 로드 완료 후 자동 제보 모달 열기 체크
+        if (autoOpenReport && record) {
+          // 위변조가 감지된 경우에만 모달 열기 (변조가 조금이라도 탐지되면)
+          const isTampered = (record.modification_rate && record.modification_rate > 0) || record.has_watermark === true
+          if (isTampered) {
+            setTimeout(() => {
+              setIsReportModalOpen(true)
+            }, 1000) // 1초 후 모달 열기 (UI 안정화 후)
+          }
+        }
       } catch (error: any) {
         console.error('검증 기록 조회 실패:', error)
         toast({
@@ -97,7 +109,7 @@ export default function ResultContent({ validationId }: ResultContentProps) {
     return () => {
       window.removeEventListener('authStateChanged', handleAuthStateChange)
     }
-  }, [validationId, toast])
+  }, [validationId, toast, autoOpenReport])
 
   // 별도 useEffect로 모달 자동 오픈 처리
   useEffect(() => {

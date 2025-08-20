@@ -139,10 +139,10 @@ export default function VerifyPage() {
       // 백엔드에서 받은 validation_id UUID로 결과 페이지 이동
       if (validateResponse && validateResponse.validation_id) {
         // 변조가 감지된 경우에만 제보 모달 자동 열기 (로그인된 사용자에게만)
-        const isDetected = validateResponse.tampering_rate && validateResponse.tampering_rate > 0
+        const isDetected = validateResponse.modification_rate && validateResponse.modification_rate > 0
         console.log('검증 결과:', {
           validation_id: validateResponse.validation_id,
-          tampering_rate: validateResponse.tampering_rate,
+          modification_rate: validateResponse.modification_rate,
           usedAlgorithm,
           isDetected
         })
@@ -153,7 +153,9 @@ export default function VerifyPage() {
           sessionStorage.setItem(`shouldOpenReport_${validateResponse.validation_id}`, 'true')
         }
         
+        // 결과 페이지로 이동 - 로딩 상태는 페이지 이동까지 유지
         router.push(`/result/${validateResponse.validation_id}`)
+        // setIsProcessing(false)는 의도적으로 호출하지 않음 - 페이지 이동까지 로딩 유지
       } else {
         console.error('No validation_id in response:', validateResponse)
         toast({

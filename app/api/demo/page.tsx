@@ -20,7 +20,8 @@ export default function DemoPage() {
   const [apiKey, setApiKey] = useState("")
   const [copyright, setCopyright] = useState("")
   const [selectedAlgorithm, setSelectedAlgorithm] = useState("EditGuard")
-  const [isProcessing, setIsProcessing] = useState(false)
+  const [isWatermarkProcessing, setIsWatermarkProcessing] = useState(false)
+  const [isVerificationProcessing, setIsVerificationProcessing] = useState(false)
   const [verificationResult, setVerificationResult] = useState<any>(null)
   const [verificationFile, setVerificationFile] = useState<File | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
@@ -28,6 +29,12 @@ export default function DemoPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [showApiKey, setShowApiKey] = useState(false)
   const [isLoadingUser, setIsLoadingUser] = useState(true)
+  const [algorithms, setAlgorithms] = useState<Record<string, string>>({
+    "EditGuard": "조작 영역 탐지 (95% 정밀도)",
+    "RobustWide": "AI 편집 공격 방지 워터마크",
+    "FAKEFACE": "얼굴 딥페이크 방지"
+  })
+  const [isLoadingAlgorithms, setIsLoadingAlgorithms] = useState(true)
 
   // 샘플 이미지 리스트
   const sampleImages = [
@@ -37,12 +44,35 @@ export default function DemoPage() {
     { id: 4, name: "샘플 이미지 4", path: "/face/4.png" }
   ]
 
-  // 알고리즘 정보
-  const algorithms = {
-    "EditGuard": "조작 영역 탐지 (95% 정밀도)",
-    "RobustWide": "AI 편집 공격 방지 워터마크",
-    "FAKEFACE": "얼굴 딥페이크 방지"
-  }
+  // 알고리즘 목록 로드
+  useEffect(() => {
+    const loadAlgorithms = async () => {
+      try {
+        const algorithmData = await apiClient.getAlgorithms()
+        
+        // 백엔드에서 받은 알고리즘 데이터를 UI용 형식으로 변환
+        const formattedAlgorithms: Record<string, string> = {}
+        Object.entries(algorithmData).forEach(([key, info]: [string, any]) => {
+          formattedAlgorithms[key] = info.title || info.description || key
+        })
+        
+        setAlgorithms(formattedAlgorithms)
+        
+        // 첫 번째 알고리즘을 기본값으로 설정
+        const firstAlgorithm = Object.keys(formattedAlgorithms)[0]
+        if (firstAlgorithm && selectedAlgorithm === "EditGuard" && !formattedAlgorithms["EditGuard"]) {
+          setSelectedAlgorithm(firstAlgorithm)
+        }
+      } catch (error) {
+        console.error('알고리즘 목록 로드 실패:', error)
+        // 실패 시 기본값 유지
+      } finally {
+        setIsLoadingAlgorithms(false)
+      }
+    }
+
+    loadAlgorithms()
+  }, [])
 
   // 사용자 정보 및 인증 확인
   useEffect(() => {
@@ -60,11 +90,14 @@ export default function DemoPage() {
         
         // 사용자 정보 로드
         const user = await apiClient.getMe()
-        setUserInfo(user)
         
-        // 백엔드에서 받은 API 키 사용, 없으면 데모용 키 생성
-        const userApiKey = user.api_key || `ak_${user.id.toString().padStart(8, '0')}${'x'.repeat(24)}`
-        setApiKey(userApiKey)
+        // 내 API 키 정보 섹션용 - 백엔드에서 받은 실제 API 키 표시
+        if (!user.api_key) {
+          // 백엔드에서 API 키가 없으면 데모용 키 생성해서 표시
+          user.api_key = `ak_${user.id.toString().padStart(8, '0')}${'x'.repeat(24)}`
+        }
+        
+        setUserInfo(user)
         
       } catch (error) {
         console.error('사용자 정보 로드 실패:', error)
@@ -80,7 +113,16 @@ export default function DemoPage() {
   // API 키 복사
   const copyApiKey = async () => {
     try {
-      await navigator.clipboard.writeText(apiKey)
+      const keyToCopy = userInfo?.api_key || ''
+      if (!keyToCopy) {
+        toast({
+          title: "복사 실패",
+          description: "복사할 API 키가 없습니다.",
+          variant: "destructive",
+        })
+        return
+      }
+      await navigator.clipboard.writeText(keyToCopy)
       toast({
         title: "복사 완료",
         description: "API 키가 클립보드에 복사되었습니다.",
@@ -111,16 +153,8 @@ export default function DemoPage() {
       return
     }
 
-    if (!apiKey.startsWith('ak_') || apiKey.length !== 35) {
-      toast({
-        title: "잘못된 API 키 형식",
-        description: "API 키는 'ak_' + 32자리 문자열이어야 합니다.",
-        variant: "destructive",
-      })
-      return
-    }
 
-    setIsProcessing(true)
+    setIsWatermarkProcessing(true)
     
     try {
       // 이미지 파일을 fetch로 가져오기
@@ -198,7 +232,7 @@ export default function DemoPage() {
         variant: "destructive",
       })
     } finally {
-      setIsProcessing(false)
+      setIsWatermarkProcessing(false)
     }
   }
 
@@ -222,7 +256,7 @@ export default function DemoPage() {
       return
     }
 
-    setIsProcessing(true)
+    setIsVerificationProcessing(true)
     
     try {
       const formData = new FormData()
@@ -246,7 +280,25 @@ export default function DemoPage() {
       console.log('검증 결과:', result)
 
       if (result.success && result.data && result.data[0]) {
-        setVerificationResult(result.data[0])
+        const validationData = result.data[0]
+        setVerificationResult(validationData)
+        
+        // 검증 완료 후 결과 페이지로 이동
+        if (validationData.validation_id) {
+          // 위변조가 감지된 경우 (변조가 조금이라도 탐지되면)
+          const isTampered = (validationData.tampering_rate && validationData.tampering_rate > 0) || 
+                            (validationData.ai_tampering_rate && validationData.ai_tampering_rate > 0) ||
+                            validationData.has_watermark === true
+          
+          if (isTampered) {
+            // 위변조 감지 시 제보 창과 함께 결과 페이지로 이동
+            router.push(`/result/${validationData.validation_id}?showReport=true`)
+          } else {
+            // 정상 이미지인 경우 일반 결과 페이지로 이동
+            router.push(`/result/${validationData.validation_id}`)
+          }
+        }
+        
         toast({
           title: "검증 완료",
           description: `${selectedAlgorithm} 알고리즘으로 이미지 검증이 완료되었습니다.`,
@@ -262,7 +314,7 @@ export default function DemoPage() {
         variant: "destructive",
       })
     } finally {
-      setIsProcessing(false)
+      setIsVerificationProcessing(false)
     }
   }
 
@@ -394,15 +446,14 @@ export default function DemoPage() {
                     </div>
                     <div className="bg-white border border-blue-200 rounded p-3">
                       <code className="text-sm font-mono text-gray-800">
-                        {showApiKey ? apiKey : getMaskedApiKey(apiKey)}
+                        {showApiKey ? (userInfo.api_key || 'API 키 없음') : getMaskedApiKey(userInfo.api_key || '')}
                       </code>
                     </div>
                   </div>
                   
                   <div className="bg-blue-100 border border-blue-200 rounded-lg p-3">
                     <p className="text-xs text-blue-700">
-                      💡 <strong>팁:</strong> 이 API 키는 자동으로 아래 입력란에 적용됩니다. 
-                      복사 버튼을 클릭하여 외부 애플리케이션에서 사용할 수 있습니다.
+                      💡 <strong>안내:</strong> 해당 페이지는 AEGIS OPEN-API 발급 및 테스트 서비스입니다.
                     </p>
                   </div>
                 </div>
@@ -455,9 +506,9 @@ export default function DemoPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="algorithm">알고리즘 선택</Label>
-                  <Select value={selectedAlgorithm} onValueChange={setSelectedAlgorithm}>
+                  <Select value={selectedAlgorithm} onValueChange={setSelectedAlgorithm} disabled={isLoadingAlgorithms}>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder={isLoadingAlgorithms ? "알고리즘 로딩 중..." : "알고리즘 선택"} />
                     </SelectTrigger>
                     <SelectContent>
                       {Object.entries(algorithms).map(([key, description]) => (
@@ -467,6 +518,14 @@ export default function DemoPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {isLoadingAlgorithms && (
+                    <p className="text-xs text-gray-500">백엔드에서 알고리즘 목록을 가져오는 중...</p>
+                  )}
+                  <div className="bg-yellow-50 border border-yellow-200 rounded p-2">
+                    <p className="text-xs text-yellow-800">
+                      <strong>⚠️ 중요:</strong> 선택된 알고리즘이 워터마크 생성(protection_algorithm)과 검증(model) 모두에 적용됩니다.
+                    </p>
+                  </div>
                 </div>
               </div>
               
@@ -494,7 +553,7 @@ export default function DemoPage() {
               <CardContent>
                 <div className="space-y-4">
                   <p className="text-sm text-gray-600">
-                    샘플 이미지를 선택하여 워터마크를 적용하고 다운로드하세요.
+                    샘플 이미지를 선택하여 <strong>선택된 {selectedAlgorithm} 알고리즘</strong>으로 워터마크를 적용하고 다운로드하세요.
                   </p>
                   
                   <div className="grid grid-cols-2 gap-4">
@@ -511,11 +570,11 @@ export default function DemoPage() {
                         <p className="text-sm font-medium text-center">{image.name}</p>
                         <Button
                           onClick={() => handleWatermarkDownload(image.path)}
-                          disabled={isProcessing || !apiKey}
+                          disabled={isWatermarkProcessing || !apiKey}
                           className="w-full"
                           size="sm"
                         >
-                          {isProcessing ? (
+                          {isWatermarkProcessing ? (
                             <Loader2 className="mr-2 h-3 w-3 animate-spin" />
                           ) : (
                             <Download className="mr-2 h-3 w-3" />
@@ -525,6 +584,42 @@ export default function DemoPage() {
                       </div>
                     ))}
                   </div>
+                  
+                  {/* 워터마크 생성 진행 상태 */}
+                  {isWatermarkProcessing && (
+                    <div className="mt-4">
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div className="flex items-center space-x-3">
+                          <Loader2 className="h-5 w-5 animate-spin text-green-600" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-green-900">워터마크 생성 중</p>
+                            <p className="text-xs text-green-700">{selectedAlgorithm} 알고리즘으로 이미지를 보호하고 있습니다...</p>
+                          </div>
+                        </div>
+                        
+                        {/* 진행 바 */}
+                        <div className="mt-3">
+                          <div className="w-full bg-green-200 rounded-full h-2">
+                            <div 
+                              className="bg-green-600 h-2 rounded-full transition-all duration-1000 ease-out"
+                              style={{ 
+                                width: '0%',
+                                animation: 'watermark-progress 2.5s ease-in-out infinite'
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <style jsx>{`
+                        @keyframes watermark-progress {
+                          0% { width: 0%; }
+                          50% { width: 80%; }
+                          100% { width: 95%; }
+                        }
+                      `}</style>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -540,7 +635,7 @@ export default function DemoPage() {
               <CardContent>
                 <div className="space-y-4">
                   <p className="text-sm text-gray-600">
-                    워터마크가 적용된 이미지를 업로드하여 검증하세요.
+                    워터마크가 적용된 이미지를 업로드하여 <strong>선택된 {selectedAlgorithm} 알고리즘</strong>으로 검증하세요.
                   </p>
                   
                   <div 
@@ -574,7 +669,7 @@ export default function DemoPage() {
                             className="hidden"
                             accept=".png"
                             onChange={handleFileUpload}
-                            disabled={isProcessing || !apiKey}
+                            disabled={isVerificationProcessing || !apiKey}
                           />
                         </label>
                       </div>
@@ -589,7 +684,7 @@ export default function DemoPage() {
                             className="hidden"
                             accept=".png"
                             onChange={handleFileUpload}
-                            disabled={isProcessing || !apiKey}
+                            disabled={isVerificationProcessing || !apiKey}
                           />
                         </label>
                         <p className="mt-1 text-xs text-gray-500">최대 10MB</p>
@@ -600,11 +695,11 @@ export default function DemoPage() {
                   {/* 검증 버튼 */}
                   <Button
                     onClick={handleVerification}
-                    disabled={!verificationFile || isProcessing || !apiKey}
+                    disabled={!verificationFile || isVerificationProcessing || !apiKey}
                     className="w-full"
                     size="lg"
                   >
-                    {isProcessing ? (
+                    {isVerificationProcessing ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         검증 중...
@@ -616,6 +711,56 @@ export default function DemoPage() {
                       </>
                     )}
                   </Button>
+
+                  {/* 검증 진행 상태 */}
+                  {isVerificationProcessing && (
+                    <div className="space-y-3">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-center space-x-3">
+                          <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-blue-900">검증 진행 중</p>
+                            <p className="text-xs text-blue-700">AI 모델이 이미지를 분석하고 있습니다...</p>
+                          </div>
+                        </div>
+                        
+                        {/* 진행 바 */}
+                        <div className="mt-3">
+                          <div className="w-full bg-blue-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-1000 ease-out"
+                              style={{ 
+                                width: '0%',
+                                animation: 'loading-progress 3s ease-in-out infinite'
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <style jsx>{`
+                        @keyframes loading-progress {
+                          0% { width: 0%; }
+                          50% { width: 70%; }
+                          100% { width: 90%; }
+                        }
+                      `}</style>
+                    </div>
+                  )}
+
+                  {/* 검증 결과 표시 */}
+                  {verificationResult && !isVerificationProcessing && (
+                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <h4 className="font-semibold text-green-800">검증 완료</h4>
+                      </div>
+                      <div className="text-sm text-green-700">
+                        <p><strong>알고리즘:</strong> {selectedAlgorithm}</p>
+                        <p><strong>결과:</strong> {JSON.stringify(verificationResult, null, 2)}</p>
+                      </div>
+                    </div>
+                  )}
 
                 </div>
               </CardContent>
