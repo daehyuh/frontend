@@ -84,14 +84,56 @@ export default function VerifyPage() {
     setIsProcessing(true)
 
     try {
-      // 이미지 검증 (선택된 모델 포함)
-      const validateResponse = await apiWithLoading.validateImage(selectedFile, selectedAlgorithm)
+      let validateResponse = null
+      let usedAlgorithm = ""
       
-      console.log('Validation response:', validateResponse)
+      // 자동 검증: 두 알고리즘 병렬 실행
+      console.log('두 알고리즘으로 동시 검증 시작 중...')
+      
+      const editGuardPromise = apiWithLoading.validateImage(selectedFile, 'EditGuard')
+        .then(result => ({ success: true, result, algorithm: 'EditGuard' }))
+        .catch(error => ({ success: false, error, algorithm: 'EditGuard' }))
+      
+      const robustWidePromise = apiWithLoading.validateImage(selectedFile, 'RobustWide')
+        .then(result => ({ success: true, result, algorithm: 'RobustWide' }))
+        .catch(error => ({ success: false, error, algorithm: 'RobustWide' }))
+      
+      const results = await Promise.allSettled([editGuardPromise, robustWidePromise])
+      
+      let editGuardResult = null
+      let robustWideResult = null
+      
+      if (results[0].status === 'fulfilled') {
+        editGuardResult = results[0].value
+      }
+      if (results[1].status === 'fulfilled') {
+        robustWideResult = results[1].value
+      }
+      
+      // EditGuard가 성공하면 우선 사용
+      if (editGuardResult?.success) {
+        validateResponse = editGuardResult.result
+        usedAlgorithm = 'EditGuard'
+        console.log('EditGuard 검증 성공 (자동 검증):', validateResponse)
+      }
+      // EditGuard 실패 시 RobustWide 사용
+      else if (robustWideResult?.success) {
+        validateResponse = robustWideResult.result
+        usedAlgorithm = 'RobustWide'
+        console.log('RobustWide 검증 성공 (자동 검증):', validateResponse)
+      }
+      // 둘 다 실패한 경우
+      else {
+        const editGuardError = editGuardResult?.error || new Error('EditGuard 알 수 없는 오류')
+        console.error('두 알고리즘 모두 실패 (자동 검증):', { editGuardResult, robustWideResult })
+        throw editGuardError
+      }
+      
+      console.log(`최종 검증 성공 - 사용된 알고리즘: ${usedAlgorithm}`, validateResponse)
       
       toast({
         title: "검증 완료",
-        description: "이미지 분석이 완료되었습니다.",
+        description: `${usedAlgorithm} 알고리즘으로 자동 분석이 완료되었습니다.`,
       })
 
       // 백엔드에서 받은 validation_id UUID로 결과 페이지 이동
@@ -101,6 +143,7 @@ export default function VerifyPage() {
         console.log('검증 결과:', {
           validation_id: validateResponse.validation_id,
           tampering_rate: validateResponse.tampering_rate,
+          usedAlgorithm,
           isDetected
         })
         
@@ -118,8 +161,8 @@ export default function VerifyPage() {
           description: "검증은 완료되었지만 결과 페이지로 이동할 수 없습니다.",
           variant: "destructive",
         })
+        setIsProcessing(false)
       }
-      setIsProcessing(false)
     } catch (error) {
       console.error('Validation error:', error);
       
@@ -223,59 +266,30 @@ export default function VerifyPage() {
                 description="지원 형식: PNG (최대 10MB)"
               />
 
-              {/* 알고리즘 선택 */}
-              <div className="space-y-4">
-                <Label>검증 알고리즘 선택</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {Object.entries(algorithms).map(([key, algorithm]) => (
-                    <div
-                      key={key}
-                      className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
-                        selectedAlgorithm === key
-                          ? 'border-primary bg-primary/5 shadow-md'
-                          : 'border-gray-200 hover:border-primary/50 hover:shadow-sm'
-                      }`}
-                      onClick={() => setSelectedAlgorithm(key)}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className={`font-semibold ${
-                          selectedAlgorithm === key ? 'text-primary' : 'text-gray-900'
-                        }`}>
-                          {algorithm.name}
-                        </h3>
-                        <div className={`w-4 h-4 rounded-full border-2 ${
-                          selectedAlgorithm === key
-                            ? 'border-primary bg-primary'
-                            : 'border-gray-300'
-                        }`}>
-                          {selectedAlgorithm === key && (
-                            <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
-                          )}
-                        </div>
-                      </div>
-                      <p className={`text-sm font-medium mb-2 ${
-                        selectedAlgorithm === key ? 'text-primary' : 'text-gray-700'
-                      }`}>
-                        {algorithm.title}
-                      </p>
-                      <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-line">
-                        {algorithm.description}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+              {/* 자동 검증 */}
+              <div className="space-y-3">
+                <Button 
+                  onClick={handleVerify} 
+                  disabled={!selectedFile || isProcessing} 
+                  className="w-full" 
+                  size="lg"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      AI가 두 알고리즘으로 자동 분석하고 있습니다...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="mr-2 h-4 w-4" />
+                      자동 검증 시작하기
+                    </>
+                  )}
+                </Button>
+                <p className="text-sm text-gray-600 text-center">
+                  두 알고리즘(EditGuard, RobustWide)을 자동으로 찾아서 검증합니다
+                </p>
               </div>
-
-              <Button onClick={handleVerify} disabled={!selectedFile || isProcessing} className="w-full" size="lg">
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    AI가 이미지를 정밀 분석하고 있습니다...
-                  </>
-                ) : (
-                  "검증 시작하기"
-                )}
-              </Button>
             </CardContent>
           </Card>
 
