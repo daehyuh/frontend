@@ -1,15 +1,17 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { AlertTriangle, CheckCircle, Printer, Copy } from "lucide-react"
+import { AlertTriangle, CheckCircle, Printer, Copy, Flag } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import MaskOverlaySlider from "@/components/mask-overlay-slider"
+import ReportModal from "@/components/ReportModal"
+import { apiClient } from "@/lib/api"
 import type { ValidationRecordDetail } from "@/lib/api"
 
 interface ResultContentProps {
@@ -22,10 +24,34 @@ export default function ResultContent({ validationId }: ResultContentProps) {
   const [validationRecord, setValidationRecord] = useState<ValidationRecordDetail | null>(null)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const [imageError, setImageError] = useState(false)
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
 
   useEffect(() => {
+    console.log('ResultContent 컴포넌트 마운트됨')
+    console.log('현재 URL:', window.location.href)
+    console.log('searchParams:', searchParams.toString())
+    console.log('openReport 파라미터:', searchParams.get('openReport'))
+    
+    // 인증 상태 확인
+    const checkAuth = () => {
+      const authenticated = apiClient.isAuthenticated()
+      setIsAuthenticated(authenticated)
+      console.log('인증 상태:', authenticated)
+    }
+
+    checkAuth()
+
+    // 인증 상태 변경 이벤트 리스너
+    const handleAuthStateChange = () => {
+      checkAuth()
+    }
+
+    window.addEventListener('authStateChanged', handleAuthStateChange)
+
     const fetchValidationRecord = async () => {
       try {
         // 약간의 지연 후 바로 데이터 로드 (인증 확인 제거)
@@ -67,7 +93,52 @@ export default function ResultContent({ validationId }: ResultContentProps) {
     }
 
     fetchValidationRecord()
+
+    return () => {
+      window.removeEventListener('authStateChanged', handleAuthStateChange)
+    }
   }, [validationId, toast])
+
+  // 별도 useEffect로 모달 자동 오픈 처리
+  useEffect(() => {
+    // sessionStorage에서 자동 모달 열기 플래그 확인
+    const shouldOpenReport = sessionStorage.getItem(`shouldOpenReport_${validationId}`) === 'true'
+    console.log('sessionStorage shouldOpenReport:', shouldOpenReport)
+    
+    if (shouldOpenReport && validationRecord && !loading && !isCheckingAuth) {
+      console.log('sessionStorage에서 모달 열기 시도')
+      console.log('validationRecord:', validationRecord)
+      console.log('modification_rate:', validationRecord.modification_rate)
+      console.log('isAuthenticated:', isAuthenticated)
+      
+      const isDetected = validationRecord.modification_rate && validationRecord.modification_rate > 0
+      // 로그인된 사용자라면 변조 감지 여부와 관계없이 제보 가능
+      const canReport = isAuthenticated
+      
+      console.log('isDetected:', isDetected)
+      console.log('canReport:', canReport)
+      
+      if (canReport) {
+        console.log('모달 열기 조건 충족 - 모달을 열겠습니다')
+        // sessionStorage 플래그 제거
+        sessionStorage.removeItem(`shouldOpenReport_${validationId}`)
+        
+        // 페이지 로드가 완전히 완료된 후 모달 열기
+        setTimeout(() => {
+          console.log('모달 열기 실행')
+          setIsReportModalOpen(true)
+        }, 500)
+      } else {
+        console.log('모달 열기 조건 불충족:', {
+          isAuthenticated,
+          isDetected,
+          canReport
+        })
+        // 조건이 충족되지 않으면 플래그도 제거
+        sessionStorage.removeItem(`shouldOpenReport_${validationId}`)
+      }
+    }
+  }, [validationRecord, loading, isAuthenticated, validationId, isCheckingAuth])
 
   if (isCheckingAuth) return null
 
@@ -88,6 +159,38 @@ export default function ResultContent({ validationId }: ResultContentProps) {
   const handleImageError = () => {
     setImageError(true)
   }
+
+  const handleReportSubmitted = () => {
+    // 제보 완료 후 데이터 다시 로드하여 제보 정보 반영
+    const refetchValidationRecord = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/validation-record/uuid/${validationId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          const record = data.data && data.data[0] ? data.data[0] : null
+          if (record) {
+            setValidationRecord(record)
+          }
+        }
+      } catch (error) {
+        console.error('데이터 다시 로드 실패:', error)
+      }
+    }
+
+    refetchValidationRecord()
+  }
+
+  // 변조가 감지되었는지 확인
+  const isDetected = validationRecord?.modification_rate && validationRecord.modification_rate > 0
+
+  // 로그인한 사용자라면 변조 감지 여부와 관계없이 제보 가능
+  const canReport = isAuthenticated
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -211,6 +314,47 @@ export default function ResultContent({ validationId }: ResultContentProps) {
                 </CardContent>
               </Card>
 
+              {/* User Report Information - Always show if report exists or is empty */}
+              <Card className="mb-8">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Flag className="mr-2 h-5 w-5 text-orange-500" />
+                    사용자 제보 정보
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-2">발견 경로</h4>
+                      {validationRecord.user_report_link && validationRecord.user_report_link.trim() ? (
+                        <a 
+                          href={validationRecord.user_report_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 underline break-all"
+                        >
+                          {validationRecord.user_report_link}
+                        </a>
+                      ) : (
+                        <span className="text-gray-500 italic">(제보 없음)</span>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-2">제보 내용</h4>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        {validationRecord.user_report_text && validationRecord.user_report_text.trim() ? (
+                          <p className="text-gray-700 whitespace-pre-wrap">
+                            {validationRecord.user_report_text}
+                          </p>
+                        ) : (
+                          <p className="text-gray-500 italic">(제보 없음)</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Mask Overlay Visualization - Hide for RobustWide algorithm */}
               {validationRecord.s3_mask_url && validationRecord.validation_algorithm !== 'RobustWide' && (
                 <div className="mb-8">
@@ -282,6 +426,20 @@ export default function ResultContent({ validationId }: ResultContentProps) {
                   </>
                 )}
               </Button>
+              {canReport && (
+                <Button 
+                  variant="secondary" 
+                  onClick={() => {
+                    console.log('제보 버튼 클릭됨')
+                    setIsReportModalOpen(true)
+                  }} 
+                  size="lg"
+                  className="bg-orange-100 hover:bg-orange-200 text-orange-700 border-orange-300"
+                >
+                  <Flag className="mr-2 h-4 w-4" />
+                  위변조 제보하기
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -290,6 +448,16 @@ export default function ResultContent({ validationId }: ResultContentProps) {
       <div className="no-print">
         <Footer />
       </div>
+
+      {/* Report Modal */}
+      {validationRecord && (
+        <ReportModal
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+          validationUuid={validationRecord.validation_id}
+          onReportSubmitted={handleReportSubmitted}
+        />
+      )}
     </div>
   )
 }

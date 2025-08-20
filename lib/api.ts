@@ -49,12 +49,27 @@ interface ValidationRecordDetail {
   validation_time: string;
   s3_path: string;
   s3_mask_url?: string;
+  user_report_link?: string;
+  user_report_text?: string;
   detected_watermark_info?: {
     image_id: number;
     filename: string;
     copyright: string;
     upload_time: string;
   };
+}
+
+interface UserReportRequest {
+  validation_uuid: string;
+  report_link?: string;
+  report_text?: string;
+}
+
+interface UserReportResponse {
+  validation_uuid: string;
+  report_link: string;
+  report_text: string;
+  updated_time: string;
 }
 
 interface AlgorithmInfo {
@@ -478,6 +493,24 @@ class ApiClient {
     throw new Error('검증 레코드를 찾을 수 없습니다.');
   }
 
+  // 사용자 제보 정보 업데이트
+  async updateUserReport(userReport: UserReportRequest): Promise<UserReportResponse> {
+    const response = await this.request<ApiResponse<UserReportResponse[]>>('/user-report', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userReport),
+    });
+
+    // 배열 형태로 응답이 오는 경우 첫 번째 요소 반환
+    if (response.data && response.data.length > 0) {
+      return response.data[0];
+    }
+
+    throw new Error('사용자 제보 업데이트에 실패했습니다.');
+  }
+
   // 토큰 갱신
   async refreshAccessToken(): Promise<boolean> {
     const refreshToken = this.getCookie('refresh_token');
@@ -510,4 +543,4 @@ class ApiClient {
 }
 
 export const apiClient = ApiClient.getInstance();
-export type { LoginResponse, UserResponse, ImageUploadResponse, ValidateResponse, ImageDetailResponse, ValidationRecordDetail, AlgorithmInfo, AlgorithmsResponse };
+export type { LoginResponse, UserResponse, ImageUploadResponse, ValidateResponse, ImageDetailResponse, ValidationRecordDetail, AlgorithmInfo, AlgorithmsResponse, UserReportRequest, UserReportResponse };

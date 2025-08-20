@@ -96,6 +96,18 @@ export default function VerifyPage() {
 
       // 백엔드에서 받은 validation_id UUID로 결과 페이지 이동
       if (validateResponse && validateResponse.validation_id) {
+        // 검증 완료 후 항상 제보 모달 자동 열기 (로그인된 사용자에게만)
+        console.log('검증 완료, 제보 모달 자동 열기 플래그 저장')
+        console.log('검증 결과:', {
+          validation_id: validateResponse.validation_id,
+          tampering_rate: validateResponse.tampering_rate
+        })
+        
+        // 로그인된 사용자의 경우 항상 제보 모달 열기
+        if (apiClient.isAuthenticated()) {
+          sessionStorage.setItem(`shouldOpenReport_${validateResponse.validation_id}`, 'true')
+        }
+        
         router.push(`/result/${validateResponse.validation_id}`)
       } else {
         console.error('No validation_id in response:', validateResponse)
