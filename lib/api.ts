@@ -570,6 +570,36 @@ class ApiClient {
     throw new Error('사용자 제보 업데이트에 실패했습니다.');
   }
 
+  // 간단한 검증 데이터 조회 (원시 데이터만)
+  async getValidationRawData(period: '1day' | '7days' | '30days' | 'all' = '7days'): Promise<ApiResponse<ValidationRawData[]>> {
+    const response = await this.request<ApiResponse<ValidationRawData[]>>(`/validation-raw-data?period=${period}`, {
+      method: 'GET',
+    });
+    
+    console.log('getValidationRawData response:', JSON.stringify(response, null, 2));
+    return response;
+  }
+
+  // 대시보드 통계 조회 (기존 API, deprecated)
+  async getDashboardStats(period: '7days' | '30days' = '7days'): Promise<ApiResponse<DashboardStats[]>> {
+    const response = await this.request<ApiResponse<DashboardStats[]>>(`/dashboard-stats?period=${period}`, {
+      method: 'GET',
+    });
+    
+    console.log('getDashboardStats response:', JSON.stringify(response, null, 2));
+    return response;
+  }
+
+  // 시간대별 검증 통계 조회 (기존 호환성 유지)
+  async getMyHourlyValidationStats(period: '7days' | '30days' = '7days'): Promise<ApiResponse<HourlyValidationStats[]>> {
+    const response = await this.request<ApiResponse<HourlyValidationStats[]>>(`/my-hourly-validation-stats?period=${period}`, {
+      method: 'GET',
+    });
+    
+    console.log('getMyHourlyValidationStats response:', JSON.stringify(response, null, 2));
+    return response;
+  }
+
   // 토큰 갱신
   async refreshAccessToken(): Promise<boolean> {
     const refreshToken = this.getCookie('refresh_token');
@@ -599,7 +629,84 @@ class ApiClient {
 
     return false;
   }
+
+  // 사용자 제보 통계 조회
+  async getUserReportStats(): Promise<ApiResponse<UserReportStatsData[]>> {
+    const response = await this.request<ApiResponse<UserReportStatsData[]>>('/user-report-stats', {
+      method: 'GET',
+    });
+    
+    console.log('getUserReportStats response:', JSON.stringify(response, null, 2));
+    return response;
+  }
 }
 
 export const apiClient = ApiClient.getInstance();
-export type { LoginResponse, UserResponse, ImageUploadResponse, ValidateResponse, ImageDetailResponse, ValidationRecordDetail, ValidationRecord2, UserStatistics2, ValidationList, ValidationSummaryResponse2, AlgorithmInfo, AlgorithmsResponse, UserReportRequest, UserReportResponse };
+interface HourlyData {
+  hour: number;
+  total_validations: number;
+  forgeries_detected: number;
+}
+
+interface DashboardSummary {
+  my_validations: number;
+  others_validated_my_images: number;
+  my_self_validations: number;
+  my_forgeries: number;
+  others_found_forgeries_in_my_images: number;
+  my_self_found_forgeries: number;
+}
+
+interface DashboardDailyData {
+  date: string;
+  total_validations: number;
+  forgeries_detected: number;
+}
+
+interface DashboardComparison {
+  previous_period_total: number;
+  change_percentage: number;
+}
+
+interface DashboardStats {
+  period: string;
+  summary: DashboardSummary;
+  daily_data: DashboardDailyData[];
+  comparison: DashboardComparison;
+}
+
+// 간단한 검증 데이터 타입 (새로운 API)
+interface ValidationDataItem {
+  is_tampered: boolean;    // 위변조 여부 (true면 위변조됨)
+  validation_time: string; // ISO 형식 시간 (예: "2024-01-15T14:30:00Z")
+}
+
+interface ValidationRawData {
+  period: '1day' | '7days' | '30days' | 'all';
+  validations: ValidationDataItem[];
+}
+
+// 기존 호환성을 위한 타입 (deprecated)
+interface HourlyValidationStats {
+  period: string;
+  user_stats: DashboardSummary;
+  hourly_data: HourlyData[];
+}
+
+// 사용자 제보 통계 타입
+interface UserReportDomain {
+  domain: string;
+  count: number;
+}
+
+interface UserReportLink {
+  link: string;
+  reported_time: string;
+}
+
+interface UserReportStatsData {
+  most_frequent_domains: UserReportDomain[];
+  recent_report_links: UserReportLink[];
+}
+
+export type { LoginResponse, UserResponse, ImageUploadResponse, ValidateResponse, ImageDetailResponse, ValidationRecordDetail, ValidationRecord2, UserStatistics2, ValidationList, ValidationSummaryResponse2, AlgorithmInfo, AlgorithmsResponse, UserReportRequest, UserReportResponse, HourlyValidationStats, HourlyData, DashboardStats, DashboardSummary, DashboardDailyData, DashboardComparison, ValidationRawData, ValidationDataItem, UserReportStatsData, UserReportDomain, UserReportLink };

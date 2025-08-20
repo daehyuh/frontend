@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
+import HourlyStats from "@/components/hourly-stats"
+import LeakSourceStats from "@/components/leak-source-stats"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -361,7 +363,18 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* All Validations with Pagination */}
+          {/* Statistics Section: Two Columns */}
+          {!loading && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* Left Column: Leak Source Statistics */}
+              <LeakSourceStats className="h-full" />
+              
+              {/* Right Column: Hourly Statistics */}
+              <HourlyStats className="h-full" />
+            </div>
+          )}
+
+          {/* Validation History Section */}
           {!loading && (
             <Card>
               <CardHeader>
@@ -601,8 +614,8 @@ export default function DashboardPage() {
                     <p className="text-sm text-gray-400">이미지를 검증해보세요</p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
           )}
         </div>
       </main>
