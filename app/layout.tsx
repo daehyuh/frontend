@@ -6,8 +6,8 @@ import { LoadingProvider } from '@/contexts/loading-context'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'AEGIS - AI 편집도 속일 수 없는 워터마크 기술',
-  description: '딥러닝 기반 보이지 않는 표식이 원본의 소유권을 지켜주고, 조작의 흔적은 눈에 보이는 증거로 드러냅니다.',
+  title: 'AEGIS(아이기스) | AI 편집에도 견고한 워터마크, 원본 보호',
+  description: '원본의 소유권은 보이지 않게 지켜주고, 조작의 흔적은 명백한 증거로 보여줍니다.',
   keywords: ['이미지 보호', '워터마크', 'AI 검증', '위변조 탐지', '이미지 보안', 'AEGIS'],
   authors: [{ name: 'AEGIS Team' }],
   creator: 'AEGIS',
