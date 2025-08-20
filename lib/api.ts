@@ -59,6 +59,55 @@ interface ValidationRecordDetail {
   };
 }
 
+interface ValidationRecord2 {
+  validation_id: string;
+  record_id: number;
+  user_id: number;
+  input_filename: string;
+  has_watermark: boolean;
+  detected_watermark_image_id: number | null;
+  modification_rate: number | null;
+  validation_algorithm: string;
+  validation_time: string;
+  s3_validation_image_url: string;
+  s3_mask_url?: string;
+  user_report_link?: string;
+  user_report_text?: string;
+  relation_type: 1 | 2 | 3;
+  original_image_owner_id: number;
+  original_image_filename: string;
+  original_image_copyright: string;
+}
+
+interface UserStatistics2 {
+  my_validations_count: number;
+  my_image_validations_count: number;
+  self_validations_count: number;
+  total_records_count: number;
+  returned_records_count: number;
+}
+
+interface ValidationList {
+  name: string;
+  count: number;
+  records: ValidationRecord2[];
+}
+
+interface ValidationSummaryResponse2 {
+  user_statistics: UserStatistics2;
+  validation_lists: {
+    all: ValidationList;
+    my_validations: ValidationList;
+    my_image_validations: ValidationList;
+    self_validations: ValidationList;
+  };
+  relation_types: {
+    "1": string;
+    "2": string;
+    "3": string;
+  };
+}
+
 interface UserReportRequest {
   validation_uuid: string;
   report_link?: string;
@@ -478,6 +527,16 @@ class ApiClient {
     console.log('getMyValidationSummary response:', JSON.stringify(response, null, 2));
     return response;
   }
+
+  // 통합 검증 요약 정보 조회 (새로운 API)
+  async getMyValidationSummary2(limit: number = 10, offset: number = 0): Promise<ApiResponse<ValidationSummaryResponse2[]>> {
+    const response = await this.request<ApiResponse<ValidationSummaryResponse2[]>>(`/my-validation-summary2?limit=${limit}&offset=${offset}`, {
+      method: 'GET',
+    });
+    
+    console.log('getMyValidationSummary2 response:', JSON.stringify(response, null, 2));
+    return response;
+  }
   
   // UUID로 검증 레코드 상세 조회
   async getValidationRecordByUuid(validationUuid: string): Promise<ValidationRecordDetail> {
@@ -543,4 +602,4 @@ class ApiClient {
 }
 
 export const apiClient = ApiClient.getInstance();
-export type { LoginResponse, UserResponse, ImageUploadResponse, ValidateResponse, ImageDetailResponse, ValidationRecordDetail, AlgorithmInfo, AlgorithmsResponse, UserReportRequest, UserReportResponse };
+export type { LoginResponse, UserResponse, ImageUploadResponse, ValidateResponse, ImageDetailResponse, ValidationRecordDetail, ValidationRecord2, UserStatistics2, ValidationList, ValidationSummaryResponse2, AlgorithmInfo, AlgorithmsResponse, UserReportRequest, UserReportResponse };

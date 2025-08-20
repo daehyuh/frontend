@@ -96,15 +96,17 @@ export default function VerifyPage() {
 
       // 백엔드에서 받은 validation_id UUID로 결과 페이지 이동
       if (validateResponse && validateResponse.validation_id) {
-        // 검증 완료 후 항상 제보 모달 자동 열기 (로그인된 사용자에게만)
-        console.log('검증 완료, 제보 모달 자동 열기 플래그 저장')
+        // 변조가 감지된 경우에만 제보 모달 자동 열기 (로그인된 사용자에게만)
+        const isDetected = validateResponse.tampering_rate && validateResponse.tampering_rate > 0
         console.log('검증 결과:', {
           validation_id: validateResponse.validation_id,
-          tampering_rate: validateResponse.tampering_rate
+          tampering_rate: validateResponse.tampering_rate,
+          isDetected
         })
         
-        // 로그인된 사용자의 경우 항상 제보 모달 열기
-        if (apiClient.isAuthenticated()) {
+        // 로그인된 사용자이면서 변조가 감지된 경우에만 제보 모달 열기
+        if (apiClient.isAuthenticated() && isDetected) {
+          console.log('변조 감지됨, 제보 모달 자동 열기 플래그 저장')
           sessionStorage.setItem(`shouldOpenReport_${validateResponse.validation_id}`, 'true')
         }
         

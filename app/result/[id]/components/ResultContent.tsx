@@ -112,8 +112,8 @@ export default function ResultContent({ validationId }: ResultContentProps) {
       console.log('isAuthenticated:', isAuthenticated)
       
       const isDetected = validationRecord.modification_rate && validationRecord.modification_rate > 0
-      // 로그인된 사용자라면 변조 감지 여부와 관계없이 제보 가능
-      const canReport = isAuthenticated
+      // 로그인된 사용자이면서 변조가 감지된 경우에만 제보 가능
+      const canReport = isAuthenticated && isDetected
       
       console.log('isDetected:', isDetected)
       console.log('canReport:', canReport)
@@ -189,8 +189,8 @@ export default function ResultContent({ validationId }: ResultContentProps) {
   // 변조가 감지되었는지 확인
   const isDetected = validationRecord?.modification_rate && validationRecord.modification_rate > 0
 
-  // 로그인한 사용자라면 변조 감지 여부와 관계없이 제보 가능
-  const canReport = isAuthenticated
+  // 로그인한 사용자이면서 변조가 감지된 경우에만 제보 가능
+  const canReport = isAuthenticated && isDetected
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -314,47 +314,48 @@ export default function ResultContent({ validationId }: ResultContentProps) {
                 </CardContent>
               </Card>
 
-              {/* User Report Information - Always show if report exists or is empty */}
-              <Card className="mb-8">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Flag className="mr-2 h-5 w-5 text-orange-500" />
-                    사용자 제보 정보
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-2">발견 경로</h4>
-                      {validationRecord.user_report_link && validationRecord.user_report_link.trim() ? (
-                        <a 
-                          href={validationRecord.user_report_link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 underline break-all"
-                        >
-                          {validationRecord.user_report_link}
-                        </a>
-                      ) : (
-                        <span className="text-gray-500 italic">(제보 없음)</span>
-                      )}
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-2">제보 내용</h4>
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        {validationRecord.user_report_text && validationRecord.user_report_text.trim() ? (
-                          <p className="text-gray-700 whitespace-pre-wrap">
-                            {validationRecord.user_report_text}
-                          </p>
+              {/* User Report Information - Only show for detected tampering */}
+              {isDetected && true ?    <Card className="mb-8">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Flag className="mr-2 h-5 w-5 text-orange-500" />
+                      사용자 제보 정보
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-2">발견 경로</h4>
+                        {validationRecord.user_report_link && validationRecord.user_report_link.trim() ? (
+                          <a 
+                            href={validationRecord.user_report_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline break-all"
+                          >
+                            {validationRecord.user_report_link}
+                          </a>
                         ) : (
-                          <p className="text-gray-500 italic">(제보 없음)</p>
+                          <span className="text-gray-500 italic">(제보 없음)</span>
                         )}
                       </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-2">제보 내용</h4>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          {validationRecord.user_report_text && validationRecord.user_report_text.trim() ? (
+                            <p className="text-gray-700 whitespace-pre-wrap">
+                              {validationRecord.user_report_text}
+                            </p>
+                          ) : (
+                            <p className="text-gray-500 italic">(제보 없음)</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-
+                  </CardContent>
+                </Card> : <></>
+                }
+              
               {/* Mask Overlay Visualization - Hide for RobustWide algorithm */}
               {validationRecord.s3_mask_url && validationRecord.validation_algorithm !== 'RobustWide' && (
                 <div className="mb-8">
@@ -426,7 +427,7 @@ export default function ResultContent({ validationId }: ResultContentProps) {
                   </>
                 )}
               </Button>
-              {canReport && (
+              {canReport && true ? (
                 <Button 
                   variant="secondary" 
                   onClick={() => {
@@ -439,7 +440,7 @@ export default function ResultContent({ validationId }: ResultContentProps) {
                   <Flag className="mr-2 h-4 w-4" />
                   위변조 제보하기
                 </Button>
-              )}
+              ) : <></>}
             </div>
           )}
         </div>
