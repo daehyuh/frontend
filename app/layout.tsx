@@ -44,7 +44,7 @@ export const metadata: Metadata = {
   },
   manifest: 'https://aegis.gdgoc.com/site.webmanifest',
   openGraph: {
-    title: 'AEGIS - AI 편집도 속일 수 없는 워터마크 기술',
+    title: 'AEGIS(아이기스) | AI 편집에도 견고한 워터마크, 원본 보호',
     description: '딥러닝 기반 보이지 않는 표식이 원본의 소유권을 지켜주고, 조작의 흔적은 눈에 보이는 증거로 드러냅니다.',
     url: 'https://aegis.gdgoc.com',
     siteName: 'AEGIS',
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
         url: 'https://aegis.gdgoc.com/image.png',
         width: 1200,
         height: 630,
-        alt: 'AEGIS - AI 편집도 속일 수 없는 워터마크 기술',
+        alt: 'AEGIS(아이기스) | AI 편집에도 견고한 워터마크, 원본 보호',
       },
       {
         url: 'https://aegis.gdgoc.com/logo.png',
@@ -67,7 +67,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AEGIS - AI 편집도 속일 수 없는 워터마크 기술',
+    title: 'AEGIS(아이기스) | AI 편집에도 견고한 워터마크, 원본 보호',
     description: '딥러닝 기반 보이지 않는 표식이 원본의 소유권을 지켜주고, 조작의 흔적은 눈에 보이는 증거로 드러냅니다.',
     images: ['https://aegis.gdgoc.com/image.png'],
     creator: '@aegis_ai',
