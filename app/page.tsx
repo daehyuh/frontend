@@ -63,14 +63,13 @@ export default function HomePage() {
       <section className="pt-16 pb-0 relative" style={{backgroundColor: '#F7F7F7'}}>
         <div className="container mx-auto px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">목적에 따라 선택 가능한 맞춤형 AI 솔루션</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">EditGuard 하나면 충분합니다</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              사용자의 문제 상황에 최적화된 워터마킹 모델을 제공합니다
+              조작 영역을 정밀하게 찾아내고 증거까지 확보하는 단일 워터마킹 솔루션
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
-            {/* EditGuard Card */}
+          <div className="max-w-4xl mx-auto">
             <Card className="service-card bg-white border border-gray-200 rounded-lg p-8 hover:shadow-lg transition-shadow">
               <CardContent className="p-0">
                 <div className="flex items-center justify-between mb-6">
@@ -88,8 +87,8 @@ export default function HomePage() {
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">정밀한 위치 특정 및 증거 확보</h3>
                 <p className="text-blue-700 text-lg font-semibold mb-4">어디가 변조되었는지 증명해야 할 때</p>
                 <p className="text-gray-600 mb-6 leading-relaxed">
-                  딥페이크, 허위 정보 등 조작된 영역을 95% 이상 정밀도로 탐지<br />
-                  언론 보도, 법적 분쟁 등 조작의 범위와 내용 증명이 핵심일 때 최적의 솔루션
+                  딥페이크, 허위 정보 등 조작된 영역을 95% 이상 정밀도로 탐지하고 시각적으로 표시합니다.<br />
+                  언론 보도, 법적 분쟁 등 조작의 범위와 내용을 명확히 입증해야 할 때 최적의 솔루션입니다.
                 </p>
                 <div className="space-y-3">
                   <div className="feature-tag inline-block px-4 py-2 text-sm font-semibold mr-2 mb-2">
@@ -104,46 +103,6 @@ export default function HomePage() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* RobustWide Card */}
-            <Card className="service-card bg-white border border-gray-200 rounded-lg p-8 hover:shadow-lg transition-shadow">
-              <CardContent className="p-0">
-                <div className="flex items-center justify-between mb-6">
-                  <Image
-                    src="/shield_logo.png"
-                    alt="Shield Logo"
-                    width={48}
-                    height={48}
-                    className="object-contain"
-                  />
-                  <div className="service-card-editguard text-white px-6 py-3 rounded-full">
-                    <span className="text-lg font-bold">RobustWide</span>
-                  </div>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">강력한 AI 편집 공격 방어</h3>
-                <p className="text-blue-700 text-lg font-semibold mb-4">어떤 공격에도 원본임을 지켜내야 할 때</p>
-                <p className="text-gray-600 mb-6 leading-relaxed">
-                  강력한 AI 편집 공격에도 워터마크가 훼손되지 않는 최고의 생존력<br />
-                  웹툰, 캐릭터 등 고부가가치 IP 자산이나 브랜드 로고를 보호할 때 가장 효과적
-                </p>
-                <div className="space-y-3">
-                  <div className="feature-tag inline-block px-4 py-2 text-sm font-semibold mr-2 mb-2">
-                    ✓ 강력한 내구성
-                  </div>
-                  <div className="feature-tag inline-block px-4 py-2 text-sm font-semibold mr-2 mb-2">
-                    ✓ AI 공격 저항성
-                  </div>
-                  <div className="feature-tag inline-block px-4 py-2 text-sm font-semibold">
-                    ✓ IP 자산 보호
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-                  
-        {/* Large Triangle Arrow */}
-          <div className="arrow-indicator">
-            <div className="large-triangle-arrow"></div>
           </div>
 
         </div>

@@ -4,22 +4,19 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, Shield, Search } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import FileUpload from "@/components/file-upload"
-import { apiClient, type AlgorithmsResponse, type AlgorithmInfo } from "@/lib/api"
+import { apiClient } from "@/lib/api"
 import { apiWithLoading } from "@/lib/api-with-loading"
 import { useLoading } from "@/contexts/loading-context"
 
 export default function VerifyPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [algorithms, setAlgorithms] = useState<AlgorithmsResponse>({})
-  const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>("")
   const router = useRouter()
   const { toast } = useToast()
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
@@ -44,23 +41,6 @@ export default function VerifyPage() {
             variant: "destructive",
           })
           router.push("/login?redirect=/verify")
-        } else {
-          // 알고리즘 목록 가져오기 (검증에서도 동일한 알고리즘 사용)
-          try {
-            const algorithmsData = await apiWithLoading.getAlgorithms()
-            setAlgorithms(algorithmsData)
-            const algorithmNames = Object.keys(algorithmsData)
-            if (algorithmNames.length > 0) {
-              setSelectedAlgorithm(algorithmNames[0]) // 첫 번째 알고리즘을 기본 선택
-            }
-          } catch (error) {
-            console.error('Failed to load algorithms:', error)
-            toast({
-              title: "알고리즘 로드 실패",
-              description: "알고리즘 목록을 가져오는데 실패했습니다. 페이지를 새로고침해주세요.",
-              variant: "destructive",
-            })
-          }
         }
       } catch (error) {
         console.error('Auth check error:', error)
@@ -84,56 +64,14 @@ export default function VerifyPage() {
     setIsProcessing(true)
 
     try {
-      let validateResponse = null
-      let usedAlgorithm = ""
-      
-      // 자동 검증: 두 알고리즘 병렬 실행
-      console.log('두 알고리즘으로 동시 검증 시작 중...')
-      
-      const editGuardPromise = apiWithLoading.validateImage(selectedFile, 'EditGuard')
-        .then(result => ({ success: true, result, algorithm: 'EditGuard' }))
-        .catch(error => ({ success: false, error, algorithm: 'EditGuard' }))
-      
-      const robustWidePromise = apiWithLoading.validateImage(selectedFile, 'RobustWide')
-        .then(result => ({ success: true, result, algorithm: 'RobustWide' }))
-        .catch(error => ({ success: false, error, algorithm: 'RobustWide' }))
-      
-      const results = await Promise.allSettled([editGuardPromise, robustWidePromise])
-      
-      let editGuardResult = null
-      let robustWideResult = null
-      
-      if (results[0].status === 'fulfilled') {
-        editGuardResult = results[0].value
-      }
-      if (results[1].status === 'fulfilled') {
-        robustWideResult = results[1].value
-      }
-      
-      // EditGuard가 성공하면 우선 사용
-      if (editGuardResult?.success) {
-        validateResponse = editGuardResult.result
-        usedAlgorithm = 'EditGuard'
-        console.log('EditGuard 검증 성공 (자동 검증):', validateResponse)
-      }
-      // EditGuard 실패 시 RobustWide 사용
-      else if (robustWideResult?.success) {
-        validateResponse = robustWideResult.result
-        usedAlgorithm = 'RobustWide'
-        console.log('RobustWide 검증 성공 (자동 검증):', validateResponse)
-      }
-      // 둘 다 실패한 경우
-      else {
-        const editGuardError = editGuardResult?.error || new Error('EditGuard 알 수 없는 오류')
-        console.error('두 알고리즘 모두 실패 (자동 검증):', { editGuardResult, robustWideResult })
-        throw editGuardError
-      }
-      
-      console.log(`최종 검증 성공 - 사용된 알고리즘: ${usedAlgorithm}`, validateResponse)
+      const usedAlgorithm = 'EditGuard'
+      console.log('EditGuard 알고리즘으로 검증을 시작합니다...')
+      const validateResponse = await apiWithLoading.validateImage(selectedFile, usedAlgorithm)
+      console.log(`검증 성공 - 사용된 알고리즘: ${usedAlgorithm}`, validateResponse)
       
       toast({
         title: "검증 완료",
-        description: `${usedAlgorithm} 알고리즘으로 자동 분석이 완료되었습니다.`,
+        description: `${usedAlgorithm} 알고리즘으로 분석이 완료되었습니다.`,
       })
 
       // 백엔드에서 받은 validation_id UUID로 결과 페이지 이동
@@ -279,7 +217,7 @@ export default function VerifyPage() {
                   {isProcessing ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      AI가 두 알고리즘으로 자동 분석하고 있습니다...
+                      AI가 EditGuard 알고리즘으로 분석하고 있습니다...
                     </>
                   ) : (
                     <>
@@ -289,7 +227,7 @@ export default function VerifyPage() {
                   )}
                 </Button>
                 <p className="text-sm text-gray-600 text-center">
-                  두 알고리즘(EditGuard, RobustWide)을 자동으로 찾아서 검증합니다
+                  EditGuard 알고리즘으로 위변조 여부를 자동 분석합니다
                 </p>
               </div>
             </CardContent>

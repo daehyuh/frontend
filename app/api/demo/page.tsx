@@ -30,9 +30,7 @@ export default function DemoPage() {
   const [showApiKey, setShowApiKey] = useState(false)
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [algorithms, setAlgorithms] = useState<Record<string, string>>({
-    "EditGuard": "조작 영역 탐지 (95% 정밀도)",
-    "RobustWide": "AI 편집 공격 방지 워터마크",
-    "FAKEFACE": "얼굴 딥페이크 방지"
+    "EditGuard": "조작 영역 탐지 (95% 정밀도)"
   })
   const [isLoadingAlgorithms, setIsLoadingAlgorithms] = useState(true)
 

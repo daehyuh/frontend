@@ -276,12 +276,9 @@ export default function ResultContent({ validationId, autoOpenReport = false }: 
                     <div>
                       <p className="text-sm text-gray-600 mb-1">변조률</p>
                       <p className="text-2xl font-bold">
-                        {validationRecord.validation_algorithm === 'RobustWide' 
-                          ? '지원하지않음' 
-                          : validationRecord.modification_rate 
-                            ? `${validationRecord.modification_rate.toFixed(2)}%` 
-                            : '0%'
-                        }
+                        {validationRecord.modification_rate
+                          ? `${validationRecord.modification_rate.toFixed(2)}%`
+                          : '0%'}
                       </p>
                     </div>
                     <div>
@@ -303,13 +300,10 @@ export default function ResultContent({ validationId, autoOpenReport = false }: 
                       {(validationRecord.modification_rate && validationRecord.modification_rate > 0) ? '변조 분석 결과' : '이미지 분석 결과'}
                     </h4>
                     <div className="text-sm text-blue-700">
-                      <p><strong>변조율:</strong> {
-                        validationRecord.validation_algorithm === 'RobustWide' 
-                          ? '지원하지않음' 
-                          : validationRecord.modification_rate 
-                            ? `${validationRecord.modification_rate.toFixed(2)}%` 
-                            : '0.0%'
-                      }</p>
+                      <p><strong>변조율:</strong> {validationRecord.modification_rate
+                        ? `${validationRecord.modification_rate.toFixed(2)}%`
+                        : '0.0%'}
+                      </p>
                       <p><strong>검증 알고리즘:</strong> {validationRecord.validation_algorithm}</p>
                       <p><strong>상태:</strong> {(validationRecord.modification_rate && validationRecord.modification_rate > 0) 
                         ? '이미지에서 변조가 탐지되었습니다.' 
@@ -417,8 +411,7 @@ export default function ResultContent({ validationId, autoOpenReport = false }: 
                 </Card> : <></>
                 }
               
-              {/* Mask Overlay Visualization - Hide for RobustWide algorithm */}
-              {validationRecord.s3_mask_url && validationRecord.validation_algorithm !== 'RobustWide' && (
+              {validationRecord.s3_mask_url && (
                 <div className="mb-8">
                   <MaskOverlaySlider
                     originalImageUrl={validationRecord.s3_path}
@@ -429,9 +422,7 @@ export default function ResultContent({ validationId, autoOpenReport = false }: 
                 </div>
               )}
 
-              {/* Original Image Display for RobustWide or when no mask available */}
-              {((validationRecord.validation_algorithm === 'RobustWide' && validationRecord.s3_path) || 
-                (!validationRecord.s3_mask_url && validationRecord.s3_path)) && (
+              {!validationRecord.s3_mask_url && validationRecord.s3_path && (
                 <Card className="mb-8">
                   <CardHeader>
                     <CardTitle>입력 이미지</CardTitle>

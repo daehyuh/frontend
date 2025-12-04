@@ -415,7 +415,7 @@ class ApiClient {
       return Object.keys(algorithms);
     } catch (error) {
       console.error('Failed to fetch protection algorithms:', error);
-      return ['EditGuard', 'RobustWide'];
+      return ['EditGuard'];
     }
   }
 

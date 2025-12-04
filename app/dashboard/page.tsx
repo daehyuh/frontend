@@ -491,12 +491,9 @@ export default function DashboardPage() {
                                     <div className="flex items-center">
                                       <span className="mr-1">변조률:</span>
                                       <span className="font-medium text-blue-600">
-                                        {validation.validation_algorithm === 'RobustWide' 
-                                          ? '지원하지않음' 
-                                          : validation.modification_rate 
-                                            ? `${validation.modification_rate.toFixed(2)}%` 
-                                            : '0%'
-                                        }
+                                        {validation.modification_rate
+                                          ? `${validation.modification_rate.toFixed(2)}%`
+                                          : '0%'}
                                       </span>
                                     </div>
                                     <div className="flex items-center">
