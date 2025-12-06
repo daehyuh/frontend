@@ -108,7 +108,7 @@ export default function ProtectPage() {
         // 백엔드에서 오는 구체적인 에러 메시지 처리
         if (message.includes('file size') || message.includes('too large') || message.includes('크기')) {
           errorTitle = "파일 크기 초과";
-          errorDescription = "이미지 파일 크기가 10MB를 초과합니다. 더 작은 파일을 업로드해주세요.";
+          errorDescription = "이미지 파일 크기가 100MB를 초과합니다. 더 작은 파일을 업로드해주세요.";
         } else if (message.includes('file format') || message.includes('invalid format') || message.includes('png')) {
           errorTitle = "파일 형식 오류";
           errorDescription = "PNG 형식의 이미지만 업로드 가능합니다.";

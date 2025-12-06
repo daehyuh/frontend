@@ -16,9 +16,9 @@ interface FileUploadProps {
 export default function FileUpload({
   onFileSelect,
   acceptedTypes = ["image/png"],
-  maxSize = 10 * 1024 * 1024, // 10MB
+  maxSize = 100 * 1024 * 1024, // 10MB
   title = "파일을 여기에 드래그 앤 드롭하거나 클릭하여 업로드하세요",
-  description = "지원 형식: PNG (최대 10MB)",
+  description = "지원 형식: PNG (최대 100MB)",
 }: FileUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)

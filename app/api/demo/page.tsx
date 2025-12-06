@@ -326,7 +326,7 @@ export default function DemoPage() {
       })
       return false
     }
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > 100 * 1024 * 1024) {
       toast({
         title: "파일 크기 초과",
         description: "최대 10MB까지 업로드 가능합니다.",
@@ -813,7 +813,7 @@ export default function DemoPage() {
               <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <h4 className="font-semibold text-blue-800 mb-2">제한사항</h4>
                 <ul className="text-sm text-blue-700 space-y-1">
-                  <li>• PNG 파일만 지원 (최대 10MB)</li>
+                  <li>• PNG 파일만 지원 (최대 100MB)</li>
                   <li>• API 키 기반 인증 필수</li>
                   <li>• API 키 형식: ak_ + 32자리 랜덤 문자열</li>
                 </ul>
